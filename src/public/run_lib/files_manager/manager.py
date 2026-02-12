@@ -351,4 +351,3 @@ def read_json(file_path: str, file_code: Literal['utf-8', 'auto'] = 'utf-8', par
             raise ValueError(f"Invalid json file: {e}") from e
     else:
         return _content
-
