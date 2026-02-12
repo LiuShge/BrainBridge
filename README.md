@@ -143,7 +143,7 @@ This project is licensed under the [MIT License](LICENSE) (if applicable).
 
 ## Contact
 For questions or suggestions, please contact the project maintainers:
-- **Email**: example@example.com
+- **Email**: serge-workplace@outlook.com\sergewithteto@gmail.com
 - **GitHub**: [BrainBridge](https://github.com/yourusername/BrainBridge)
 
 ---
