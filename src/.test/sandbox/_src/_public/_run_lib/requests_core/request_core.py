@@ -1,10 +1,12 @@
+import json
+
 import requests as _req
 from typing import List, Dict, Literal, Optional, Union, Mapping, MutableMapping, Tuple, Iterable, Any, BinaryIO, \
     Set, IO
 from time import localtime, perf_counter, sleep
 import io
 
-FILE_PATH = "BrainBridge/main/net/request/request_core.py"
+FILE_PATH = __file__
 
 FileContent = Union[
         bytes,
@@ -339,7 +341,6 @@ class Request:
     # ---------------------------------2026.2.3-------------------------------------
     #由gemini-2.5-flash整订
     #由qwen3-coder-480b-a35b-instruct重构
-    #TODO: 修正post l155->函数,创建put,详细注释以及持续维护,最好开放一个time模块接口(finished)
 
     _c_put = _req.put
 

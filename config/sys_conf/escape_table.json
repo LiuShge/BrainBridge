@@ -1,0 +1,584 @@
+{
+  "openai_completion": {
+    "input": {
+      "messages": [
+        {
+          "role": "developer",
+          "content": "str | list",
+          "name": "str | None"
+        },
+        {
+          "role": "system",
+          "content": "str | list",
+          "name": "str | None"
+        },
+        {
+          "role": "user",
+          "content": "str | list",
+          "name": "str | None"
+        },
+        {
+          "role": "assistant",
+          "content": "str | list | None",
+          "name": "str | None",
+          "audio": {
+            "data": "str",
+            "id": "str",
+            "transcript": "str",
+            "expires_at": "int"
+          },
+          "tool_calls": [
+            {
+              "id": "str",
+              "type": "function",
+              "function": {
+                "name": "str",
+                "arguments": "str"
+              }
+            }
+          ],
+          "refusal": "str | None"
+        },
+        {
+          "role": "tool",
+          "content": "str | list",
+          "tool_call_id": "str"
+        }
+      ],
+      "model": "str",
+      "store": "bool | None",
+      "reasoning_effort": "str | None",
+      "metadata": {
+        "key": "str"
+      },
+      "modalities": "list | None",
+      "prediction": {
+        "type": "content",
+        "content": "str | list"
+      },
+      "audio": {
+        "format": "str",
+        "voice": "str"
+      },
+      "temperature": "float | None",
+      "top_p": "float | None",
+      "n": "int | None",
+      "stop": "str | list | None",
+      "max_completion_tokens": "int | None",
+      "presence_penalty": "float | None",
+      "frequency_penalty": "float | None",
+      "logit_bias": {
+        "token_id": "int"
+      },
+      "logprobs": "bool | None",
+      "top_logprobs": "int | None",
+      "user": "str",
+      "service_tier": "str | None",
+      "stream_options": {
+        "include_usage": "bool"
+      },
+      "response_format": {
+        "type": "text | json_schema | json_object",
+        "json_schema": {
+          "name": "str",
+          "description": "str | None",
+          "schema": "dict",
+          "strict": "bool | None"
+        }
+      },
+      "seed": "int | None",
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "str",
+            "description": "str | None",
+            "parameters": "dict",
+            "strict": "bool | None"
+          }
+        }
+      ],
+      "tool_choice": "str | dict",
+      "parallel_tool_calls": "bool",
+      "stream": "bool | None",
+      "web_search_options": {
+        "search_context_size": "str",
+        "user_location": {
+          "type": "approximate",
+          "approximate": {
+            "city": "str",
+            "country": "str",
+            "region": "str",
+            "timezone": "str"
+          }
+        }
+      }
+    },
+    "output": {
+      "id": "str",
+      "object": "chat.completion",
+      "created": "int",
+      "model": "str",
+      "choices": [
+        {
+          "index": "int",
+          "message": {
+            "role": "assistant",
+            "content": "str | None",
+            "refusal": "str | None",
+            "annotations": [
+              {
+                "type": "url_citation",
+                "url_citation": {
+                  "start_index": "int",
+                  "end_index": "int",
+                  "url": "str",
+                  "title": "str"
+                }
+              }
+            ],
+            "audio": {
+              "data": "str",
+              "id": "str",
+              "transcript": "str",
+              "expires_at": "int"
+            },
+            "tool_calls": [
+              {
+                "id": "str",
+                "type": "function",
+                "function": {
+                  "name": "str",
+                  "arguments": "str"
+                }
+              }
+            ]
+          },
+          "logprobs": {
+            "content": [
+              {
+                "token": "str",
+                "logprob": "float",
+                "bytes": [
+                  "int"
+                ],
+                "top_logprobs": [
+                  {
+                    "token": "str",
+                    "logprob": "float",
+                    "bytes": [
+                      "int"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "finish_reason": "stop | length | content_filter | tool_calls"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": "int",
+        "completion_tokens": "int",
+        "total_tokens": "int",
+        "prompt_tokens_details": {
+          "cached_tokens": "int",
+          "audio_tokens": "int"
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": "int",
+          "audio_tokens": "int",
+          "accepted_prediction_tokens": "int",
+          "rejected_prediction_tokens": "int"
+        }
+      },
+      "service_tier": "str | None",
+      "system_fingerprint": "str | None"
+    },
+    "stream.output": {
+      "id": "str",
+      "object": "chat.completion.chunk",
+      "created": "int",
+      "model": "str",
+      "system_fingerprint": "str | None",
+      "choices": [
+        {
+          "index": "int",
+          "delta": {
+            "role": "assistant",
+            "content": "str",
+            "refusal": "str | None",
+            "audio": {
+              "id": "str",
+              "data": "str",
+              "expires_at": "int",
+              "transcript": "str"
+            },
+            "tool_calls": [
+              {
+                "index": "int",
+                "id": "str",
+                "type": "function",
+                "function": {
+                  "name": "str",
+                  "arguments": "str"
+                }
+              }
+            ]
+          },
+          "logprobs": {
+            "content": [
+              {
+                "token": "str",
+                "logprob": "float",
+                "bytes": ["int"],
+                "top_logprobs": [
+                  {
+                    "token": "str",
+                    "logprob": "float",
+                    "bytes": ["int"]
+                  }
+                ]
+              }
+            ]
+          },
+          "finish_reason": "stop | length | content_filter | tool_calls"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": "int",
+        "completion_tokens": "int",
+        "total_tokens": "int",
+        "prompt_tokens_details": {
+          "cached_tokens": "int",
+          "audio_tokens": "int"
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": "int",
+          "audio_tokens": "int",
+          "accepted_prediction_tokens": "int",
+          "rejected_prediction_tokens": "int"
+        }
+      }
+    }
+  },
+  "openai_response": {
+    "input": {
+      "model": "str",
+      "input": "str | list",
+      "instructions": "str | None",
+      "max_output_tokens": "int | None",
+      "metadata": {
+        "key": "str"
+      },
+      "parallel_tool_calls": "bool",
+      "previous_response_id": "str | None",
+      "reasoning": {
+        "effort": "str | None",
+        "summary": "str | None"
+      },
+      "service_tier": "str | None",
+      "store": "bool",
+      "stream": "bool",
+      "temperature": "float | None",
+      "text": {
+        "format": {
+          "type": "text"
+        }
+      },
+      "tool_choice": "str | dict",
+      "tools": [
+        {
+          "type": "file_search | function | web_search_preview | computer_use_preview"
+        }
+      ],
+      "top_p": "float | None",
+      "truncation": "str | None",
+      "user": "str | None",
+      "include": [
+        "file_search_call.results",
+        "message.input_image.image_url",
+        "computer_call_output.output.image_url",
+        "reasoning.encrypted_content"
+      ]
+    },
+    "output": {
+      "id": "str",
+      "object": "response",
+      "created_at": "int",
+      "status": "str",
+      "error": {
+        "type": "str",
+        "message": "str",
+        "code": "str | None"
+      },
+      "incomplete_details": {
+        "reason": "str"
+      },
+      "instructions": "str | None",
+      "max_output_tokens": "int | None",
+      "model": "str",
+      "output": [
+        {
+          "type": "message",
+          "id": "str",
+          "status": "str",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "str",
+              "annotations": [
+                {
+                  "type": "url_citation | file_citation | file_path",
+                  "start_index": "int",
+                  "end_index": "int",
+                  "url": "str",
+                  "title": "str",
+                  "file_id": "str",
+                  "index": "int",
+                  "filename": "str"
+                }
+              ]
+            },
+            {
+              "type": "refusal",
+              "refusal": "str"
+            }
+          ]
+        },
+        {
+          "type": "file_search_call",
+          "id": "str",
+          "status": "str",
+          "queries": "list | None",
+          "results": "list | None"
+        },
+        {
+          "type": "web_search_call",
+          "id": "str",
+          "status": "str"
+        },
+        {
+          "type": "function_call",
+          "id": "str",
+          "call_id": "str",
+          "name": "str",
+          "arguments": "str",
+          "status": "str"
+        },
+        {
+          "type": "function_call_output",
+          "id": "str",
+          "call_id": "str",
+          "output": "str",
+          "status": "str"
+        },
+        {
+          "type": "computer_call",
+          "id": "str",
+          "call_id": "str",
+          "status": "str",
+          "action": {
+            "type": "click | double_click | drag | keypress | move | screenshot | scroll | type | wait",
+            "x": "int",
+            "y": "int",
+            "start_x": "int",
+            "start_y": "int",
+            "end_x": "int",
+            "end_y": "int",
+            "keys": "str",
+            "path": "list",
+            "scroll_x": "int",
+            "scroll_y": "int",
+            "text": "str",
+            "delay": "float"
+          },
+          "pending_safety_checks": [
+            {
+              "code": "str",
+              "message": "str"
+            }
+          ]
+        },
+        {
+          "type": "computer_call_output",
+          "id": "str",
+          "call_id": "str",
+          "status": "str",
+          "output": {
+            "type": "image",
+            "image_url": "str"
+          },
+          "acknowledged_safety_checks": [
+            {
+              "code": "str",
+              "message": "str"
+            }
+          ]
+        },
+        {
+          "type": "reasoning",
+          "id": "str",
+          "status": "str",
+          "summary": [
+            {
+              "type": "summary_text",
+              "text": "str"
+            }
+          ],
+          "encrypted_content": "str | None"
+        }
+      ],
+      "parallel_tool_calls": "bool",
+      "previous_response_id": "str | None",
+      "reasoning": {
+        "effort": "str | None",
+        "summary": "str | None"
+      },
+      "store": "bool",
+      "temperature": "float",
+      "text": {
+        "format": {
+          "type": "text | json_object | json_schema",
+          "name": "str",
+          "schema": "dict",
+          "description": "str",
+          "strict": "bool | None"
+        }
+      },
+      "tool_choice": "str | dict",
+      "tools": [
+        {
+          "type": "file_search | function | web_search_preview | computer_use_preview"
+        }
+      ],
+      "top_p": "float",
+      "truncation": "str",
+      "usage": {
+        "input_tokens": "int",
+        "input_tokens_details": {
+          "cached_tokens": "int"
+        },
+        "output_tokens": "int",
+        "output_tokens_details": {
+          "reasoning_tokens": "int"
+        },
+        "total_tokens": "int"
+      },
+      "user": "str | None",
+      "metadata": "dict",
+      "service_tier": "str | None"
+    }
+  },
+  "content_part_types": {
+    "text": {
+      "type": "text",
+      "text": "str"
+    },
+    "image_url": {
+      "type": "image_url",
+      "image_url": {
+        "url": "str",
+        "detail": "str"
+      }
+    },
+    "input_audio": {
+      "type": "input_audio",
+      "input_audio": {
+        "data": "str",
+        "format": "str"
+      }
+    },
+    "file": {
+      "type": "file",
+      "file": {
+        "file_data": "str | None",
+        "file_id": "str | None",
+        "filename": "str | None"
+      }
+    },
+    "input_text": {
+      "type": "input_text",
+      "text": "str"
+    },
+    "input_image": {
+      "type": "input_image",
+      "image_url": "str",
+      "detail": "str",
+      "file_id": "str | None"
+    },
+    "input_file": {
+      "type": "input_file",
+      "file_id": "str | None",
+      "file_data": "str | None",
+      "filename": "str | None"
+    }
+  },
+  "tool_definitions": {
+    "file_search": {
+      "type": "file_search",
+      "vector_store_ids": ["vs_1234567890"],
+      "max_num_results": "int",
+      "filters": {
+        "type": "and | or",
+        "filters": [
+          {
+            "type": "eq | ne | gt | gte | lt | lte",
+            "key": "str",
+            "value": "str | float | bool"
+          }
+        ]
+      },
+      "ranking_options": {
+        "ranker": "str",
+        "score_threshold": "float"
+      }
+    },
+    "function": {
+      "type": "function",
+      "name": "str",
+      "description": "str | None",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "param_name": {
+            "type": "str | float | dict | list | bool",
+            "description": "str",
+            "enum": ["value1", "value2", "..."]
+          }
+        },
+        "required": ["param1", "param2", "..."]
+      },
+      "strict": "bool"
+    },
+    "web_search_preview": {
+      "type": "web_search_preview | web_search_preview_2025_03_11",
+      "search_context_size": "low | medium | high",
+      "user_location": {
+        "type": "approximate",
+        "city": "str | None",
+        "country": "str | None",
+        "region": "str | None",
+        "timezone": "str | None"
+      },
+      "domains": ["example.com", "..."]
+    },
+    "computer_use_preview": {
+      "type": "computer_use_preview",
+      "display_width": "int",
+      "display_height": "int",
+      "environment": "str"
+    }
+  },
+  "tool_choice_types": {
+    "string": "none | auto | required",
+    "managed_tool": {
+      "type": "file_search | web_search_preview | computer_use_preview"
+    },
+    "function_tool": {
+      "type": "function",
+      "name": "function_name"
+    }
+  }
+}
