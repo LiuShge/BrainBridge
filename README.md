@@ -1,202 +1,97 @@
-# BrainBridge
+• # BrainBridge
+  Provider-agnostic AI API middleware that normalizes inputs and outputs via JSON-configured rules.
 
-BrainBridge is a small Python toolkit that collects reusable runtime helpers
-and static utilities used by the broader project. The current codebase focuses
-on three areas:
+  ## Core Features
+  - 🧩 Decoupled transformers: `Converter` normalizes inputs, `Operator.ResponseUnwarp` normalizes outputs.
+  - 🧷 Type safety: `.pyi` stubs in `src/stubs/` for IDE support and static checking.
+  - 🗂️ JSON-driven matching: provider rules in `config/sys_conf/base_arg_match.json` and schemas in `config/sys_conf/escape_table.json`.
 
-- Request helpers that wrap `requests` with simple logging, batching, and SSE
-  streaming support.
-- Provider argument conversion and validation driven by JSON configuration.
-- File and directory helpers for walking the repository and reading/writing
-  files safely.
+  ## Project Architecture
+      .
+      ├─ src/
+      │  ├─ public/
+      │  │  ├─ run_lib/
+      │  │  │  ├─ provider_converter/   # input mapping, type validation, response unwrapping
+      │  │  │  ├─ requests_core/        # request wrapper, logging, SSE streaming
+      │  │  │  └─ files_manager/        # JSON/file helpers used by config loader
+      │  │  └─ static_lib/              # shared static helpers (checker, logger, info)
+      │  ├─ stubs/                      # .pyi type stubs mirroring run_lib APIs
+      │  ├─ _main_test.py               # streaming CLI example
+      │  └─ simple_import.py            # dynamic sys.path loader for run_lib/static_lib
+      ├─ config/
+      │  └─ sys_conf/
+      │     ├─ base_arg_match.json      # generic -> provider input/output paths
+      │     └─ escape_table.json        # provider schemas for type validation
+      └─ storage/                       # runtime logs/artifacts (generated)
 
-There is no full application entry point yet. The root launch scripts and GUI
-folder are placeholders, while the core logic lives under `src/public`.
+  Core flow:
+  Input -> Converter (normalize + type check) -> Request (send JSON payload) -> External API -> ResponseUnwarp (parse output)
 
-## Project layout
+  Notes:
+  - Serialization: `Request.post` and `Request.request_sse` pass `json=...`; `requests` handles JSON encoding.
+  - Error handling: `Converter` raises `ValueError` for missing essentials, unsupported providers, or type mismatch; `_ConfigEngine` validates config and falls back to `sys_conf` on
+  failure; `Request` logs and re-raises exceptions; `request_sse` uses `raise_for_status()`.
+  - There is no standalone requests_builder module yet; payload assembly currently lives in `Converter` plus the `requests_core` call sites.
 
-```
-BrainBridge/
-  config/
-    sys_conf/
-      base_arg_match.json     # Generic arg mapping -> provider args
-      escape_table.json       # Provider input/output schema definitions
-  src/
-    simple_import.py          # Dynamic sys.path helper
-    public/
-      run_lib/                # Runtime helpers (requests, converters, file tools)
-      static_lib/             # Static helpers (package checks, info stubs)
-    stubs/                    # .pyi type stubs for run_lib modules
-    .test/                    # Manual sandbox copy of run_lib/static_lib
-  storage/                    # Runtime output (logs, metadata, etc.)
-  requirements.txt
-  launcher.py / _launcher.py / _reset.py  # Empty placeholders
-```
-
-## Setup
-
-1) (Optional) Activate the bundled virtual environment:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-2) Install dependencies:
-
-```powershell
-pip install -r requirements.txt
-```
-
-## Quick smoke test
-
-Run the import helper to confirm `run_lib` and `static_lib` resolution works:
-
-```powershell
-python src/simple_import.py
-```
-
-## Usage
-
-### Dynamic import helper
-
-`src/simple_import.py` provides a small helper that locates `run_lib` and
-`static_lib` and appends the chosen path to `sys.path` at runtime.
-
+  ## Quick Start
+  Python 3.14+ is expected (modern typing features supported).
 ```python
-from simple_import import change_sys_path, restore_sys_path
+      from simple_import import change_sys_path, restore_sys_path
+      change_sys_path(to_runlib=True)
+      from requests_core.request_core import Request
+      from provider_converter.converter import Converter
+      restore_sys_path()
+      import json
 
-change_sys_path(to_runlib=True)
-from requests_core.request_core import Request
-restore_sys_path()
+      _history = []
+      MAX_HISTORY = 12
+
+      def main():
+          def _history_adder(content: dict[str, str]):
+              global _history
+              _history.append(content)
+          req_er = Request(timeout=120)
+          while True:
+              user_input = input("User: ")
+              if user_input.lower() in ['stop','exit','break']:
+                  break
+              message = {"role":"user","content":user_input,"name":"Serge"}
+              _history_adder(message)
+              vairy = {"Content-Type": "application/json","Authorization": "Bearer sk-****"}
+              information = Converter("openai_completion", model ='gpt-5-nano', input = _history, stream = True)
+              assistant_output = req_er.request_sse(method="POST",
+                                                    url="https://api.vectorengine.ai/v1/chat/completions",
+                                                    json=information.information, headers=vairy)
+
+              print("\nAssistant:", end=' ')
+              for i in assistant_output:
+                  raw_data = i.get('data', '').strip()
+                  if not raw_data or raw_data == "[DONE]":
+                      continue
+                  try:
+                      json_data = json.loads(raw_data)
+                      choices = json_data.get('choices', [])
+                      if choices:
+                          delta = choices[0].get('delta', {})
+                          content = delta.get('content', '')
+                          if content:
+                              print(str(content).encode('latin-1').decode('utf-8'), end='', flush=True)
+                      elif 'delta' in json_data:
+                          print(json_data['delta'], end='', flush=True)
+                  except (json.JSONDecodeError, KeyError, IndexError) as e:
+                      continue
+              print('\n')
+              if len(_history) > MAX_HISTORY:
+                  del _history[0]
+
+      if __name__ == "__main__":
+          main()
 ```
+  ## For Developers
+  - Provider rules live in `config/sys_conf/`. Edit `base_arg_match.json` for input/output mappings and `escape_table.json` for schema/type rules.
+  - `ConfigEngine` merges `config/sys_conf` with `config/user_conf` when present and validates the result before use.
+  - `.pyi` files under `src/stubs/` mirror the runtime modules; they are for type checking only and are not imported at runtime.
 
-Use `restore_sys_path()` after importing to avoid polluting the import path for
-the rest of the program.
-
-### Requests helper
-
-`src/public/run_lib/requests_core/request_core.py` wraps `requests` to provide:
-
-- Single or multi-URL GET/POST/PUT/DELETE helpers
-- Optional logging of request events
-- A simple SSE iterator for streaming endpoints
-- A small timing utility (`Time.Timer`)
-
-Example:
-
-```python
-from simple_import import change_sys_path, restore_sys_path
-
-change_sys_path(to_runlib=True)
-from requests_core.request_core import Request
-restore_sys_path()
-
-req = Request(enable_logging=True, timeout=10)
-resp = req.get("https://www.example.com")
-print(resp.status_code)
-print(len(req))  # number of logged events
-```
-
-### Provider converter
-
-`src/public/run_lib/provider_converter/converter.py` validates and translates
-generic arguments into provider-specific payloads. Validation rules and allowed
-types are stored in `config/sys_conf/escape_table.json`, while the generic
-argument mapping lives in `config/sys_conf/base_arg_match.json`.
-
-Example:
-
-```python
-from simple_import import change_sys_path, restore_sys_path
-
-change_sys_path(to_runlib=True)
-from provider_converter.converter import Converter
-restore_sys_path()
-
-conv = Converter(
-    "openai_completion",
-    model="gpt-4o-mini",
-    input=[{"role": "user", "content": "Hello"}],
-    max_tokens=128
-)
-payload = conv.information
-```
-
-Notes:
-- `model` and `input` are required and validated.
-- Generic keys like `input` and `max_tokens` are translated using the mapping
-  in `base_arg_match.json` (for example, `input` -> `messages`).
-
-### Files manager
-
-`src/public/run_lib/files_manager/manager.py` provides utilities for working
-with repository-relative paths and filesystem IO:
-
-- `return_path_of_dir_under_root_dir()` finds a top-level directory (ex: `config`)
-- `return_dir_member()` lists files and directories in a path
-- `return_full_free()` does a BFS traversal and returns a flat listing
-- `read_file()`, `read_json()`, `write_content_tofile()` read/write content with
-  optional encoding detection via `chardet`
-
-Example:
-
-```python
-from simple_import import change_sys_path, restore_sys_path
-
-change_sys_path(to_runlib=True)
-from files_manager.manager import return_path_of_dir_under_root_dir, read_json
-restore_sys_path()
-
-config_root = return_path_of_dir_under_root_dir("config")
-schema = read_json(f"{config_root}/sys_conf/escape_table.json")
-```
-
-### Static helpers
-
-`src/public/static_lib/checker/version_checker.py` exposes a lightweight
-`check_packages()` helper to check import availability without importing.
-
-```python
-from simple_import import change_sys_path, restore_sys_path
-
-change_sys_path(to_staticlib=True)
-from checker.version_checker import check_packages
-restore_sys_path()
-
-print(check_packages(["requests", "chardet", "PySide6"]))
-```
-
-## Configuration
-
-`config/sys_conf` stores provider metadata and conversion rules:
-
-- `base_arg_match.json` defines generic argument mappings and required fields.
-- `escape_table.json` provides the allowed parameter sets and output schema
-  shapes for supported providers.
-
-The `Converter` class reads both files to validate types and translate generic
-arguments into provider-specific payloads.
-
-## Tests and sandbox
-
-There is no automated test runner yet. A manual sandbox tree exists under
-`src/.test/sandbox/` that mirrors parts of `run_lib` and `static_lib` for quick
-experimentation and isolated checks.
-
-## Type stubs
-
-`src/stubs/` contains `.pyi` files for the `run_lib` modules so editors can
-provide type hints without importing the runtime code.
-
-## Development notes
-
-- Keep new runtime modules under `src/public/run_lib` and static helpers under
-  `src/public/static_lib`.
-- Use `src/simple_import.py` to resolve those libraries before importing them.
-- `storage/` is treated as runtime output and should stay out of source control.
-
-## Status
-
-The repository currently provides reusable building blocks rather than a full
-application. The root launcher scripts and `src/GUI/` are placeholders for
-future expansion.
+  ## Roadmap
+  - *TODO*: async request core and streaming
+  - *TODO*: benchmarking + profiling harness
