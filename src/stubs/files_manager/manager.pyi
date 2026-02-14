@@ -35,7 +35,7 @@ def _valid_path(target_path: str, is_file: bool = True) -> None:
     """
     pass
 
-def return_full_free(*base_paths: str) -> Dict[str, List[Union[str, Dict[str, List[Any]]]]]:
+def return_full_tree(*base_paths: str) -> Dict[str, List[Union[str, Dict[str, List[Any]]]]]:
     """
         Recursively traverses one or more base directories and returns a flattened list
         of their full file and directory paths. Directories are represented as

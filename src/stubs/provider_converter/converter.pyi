@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from os import path
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Union, BinaryIO, IO, cast
 
 FileContent = Union[bytes, str, BinaryIO, IO[bytes]]

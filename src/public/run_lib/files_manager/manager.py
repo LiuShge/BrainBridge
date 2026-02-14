@@ -109,7 +109,7 @@ def _valid_path(target_path: str, is_file: bool = True) -> None:
         raise ValueError(f"Path is not a directory: {target_path}")
 
 
-def return_full_free(*base_paths: str) -> Dict[str, List[Union[str, Dict[str, List[Any]]]]]:
+def return_full_tree(*base_paths: str) -> Dict[str, List[Union[str, Dict[str, List[Any]]]]]:
     """
     Recursively traverses one or more base directories and returns a flattened list
     of their full file and directory paths. Directories are represented as
@@ -131,7 +131,7 @@ def return_full_free(*base_paths: str) -> Dict[str, List[Union[str, Dict[str, Li
     ...     os.makedirs(subdir1_path)
     ...     with open(file1_path, "w") as f: f.write("content")
     ...     with open(file2_path, "w") as f: f.write("content")
-    ...     tree = return_full_free(dir1_path)
+    ...     tree = return_full_tree(dir1_path)
     ...     # Expected output will be a flat list containing dir1_path, file1_path, subdir1_path, file2_path
     ...     expected_items = {dir1_path, file1_path, subdir1_path, file2_path}
     ...     # Note: The order in the list might vary based on os.listdir() and set behavior
@@ -155,7 +155,7 @@ def return_full_free(*base_paths: str) -> Dict[str, List[Union[str, Dict[str, Li
     ...     # Create a file in dir_a to make it non-empty
     ...     with open(os.path.join(dir_a, "test_file_in_a.txt"), "w") as f: f.write("content")
     ...     os.symlink(os.path.join("..", "dir_a"), link_path, target_is_directory=True)
-    ...     loop_tree = return_full_free(temp_root)
+    ...     loop_tree = return_full_tree(temp_root)
     ...     # Check if the symlink_to_dir_a is present as a directory marker
     ...     # And that dir_a is also present, but link_to_dir_a's contents are not re-traversed.
     ...     all_paths_in_output = set()
