@@ -112,7 +112,8 @@
             "timezone": "str"
           }
         }
-      }
+      },
+      "requirements": ["messages", "model"]
     },
     "output": {
       "id": "str",
@@ -300,7 +301,8 @@
         "message.input_image.image_url",
         "computer_call_output.output.image_url",
         "reasoning.encrypted_content"
-      ]
+      ],
+      "requirements": ["input", "model"]
     },
     "output": {
       "id": "str",

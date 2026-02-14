@@ -1,0 +1,15 @@
+{
+  "based_args": ["input","model","stream","max_tokens"],
+  "openai_completion": {
+    "input": "messages",
+    "model": "model",
+    "stream": "stream",
+    "max_tokens": "max_completion_tokens"
+  },
+  "openai_response": {
+    "input": "input",
+    "model": "model",
+    "stream": "stream",
+    "max_tokens": "max_output_tokens"
+  }
+}

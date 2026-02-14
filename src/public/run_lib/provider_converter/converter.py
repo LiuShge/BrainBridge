@@ -1,5 +1,5 @@
 from simple_import import change_sys_path, restore_sys_path
-from typing import Any
+from typing import Any, Dict, Union
 from os import path
 
 change_sys_path(to_runlib=True)
@@ -30,6 +30,8 @@ class Converter:
             raise ValueError(f'The provider passed in is not supported: "{provider}"')
 
         selected_provider_role = supported_provider_roles[provider]
+
+        kwargs = Converter._generic_arg_replace(provider, kwargs)
 
         for key, value in kwargs.items():
             if key not in selected_provider_role["input"]:
@@ -93,16 +95,44 @@ class Converter:
             valid_types.append(type_mapping[name])
         return isinstance(_object, tuple(valid_types))
 
+    @staticmethod
+    def _generic_arg_replace(provider: str, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Convert generic argument names to provider-specific ones based on mapping rules,
+        and perform basic validation.
 
-if __name__ == "__main__":
-    x = Converter(provider="openai_response",model = 'gpt-5.1-codex-mini',input = [{"role":"user","content":"非常详细的讲解python"}],stream=True,max_output_tokens=1000)
-    print(x.information)
-    headers = {"Content-Type": "application/json","Authorization": "Bearer sk-*******"}
-    import json
-    change_sys_path(to_runlib=True)
-    from requests_core.request_core import Request
-    restore_sys_path()
-    y = Request()
-    z = y.request_sse(method="POST",url="https://www.easycodex.cn/v1/responses", json=x.information, headers=headers,timeout=100)
-    for i in z:
-        print(json.loads(i['data'])['delta'].encode('latin-1').decode('utf-8') if 'delta' in json.loads(i['data']).keys() else '',end='')
+        This method supports loading mapping configurations from 'base_arg_match.json'.
+
+        :param provider: Name of the service provider (e.g., 'openai', 'anthropic').
+        :param kwargs: Keyword arguments representing generic parameters.
+        :return: A dictionary with translated and validated provider-specific arguments.
+
+        Example:
+        >>> result = Converter._generic_arg_replace("openai", model="gpt-3.5-turbo", input="Hello")
+        >>> print(result)
+        {'model': 'gpt-3.5-turbo', 'messages': 'Hello'}
+        """
+        # 1. Locate configuration directory and load mapping file
+        config_dir = return_path_of_dir_under_root_dir("config")
+        config_path = path.join(config_dir, "sys_conf", "base_arg_match.json")
+        generic_args: Dict[str, Union[Dict[str, str], list]] = read_json(config_path)
+        if provider not in generic_args:
+            raise ValueError(f"Unsupported provider: \"{provider}\"")
+        # 2. Retrieve provider-specific mappings and global base argument definitions
+        provider_map: Dict[str, str] = generic_args[provider]
+        based_args: list = generic_args.get("based_args", [])
+        # 3. Validate required core arguments
+        for essential_arg in ["model", "input"]:
+            if essential_arg not in kwargs:
+                raise ValueError(
+                    f"Provider '{provider}' is missing required argument: '{essential_arg}'"
+                )
+        # 4. Translate and construct final parameter set
+        translated_info: Dict[str, Any] = {}
+        for key, value in kwargs.items():
+            target_key = provider_map.get(key, key)
+            translated_info[target_key] = value
+        # 5. Auto-fill default values for standard base arguments if needed
+        if "stream" in based_args and "stream" not in kwargs:
+            translated_info[provider_map.get("stream", "stream")] = True
+        return translated_info
