@@ -1,151 +1,202 @@
-# BrainBridge Project Documentation
+# BrainBridge
 
----
+BrainBridge is a small Python toolkit that collects reusable runtime helpers
+and static utilities used by the broader project. The current codebase focuses
+on three areas:
 
-## Overview
-**BrainBridge** is a Python-based, multifunctional toolkit designed to provide high-performance, modular, and extensible solutions for API request handling, data conversion, configuration management, and GUI prototyping. The project follows a clear directory structure and strict coding standards to ensure maintainability and scalability.
+- Request helpers that wrap `requests` with simple logging, batching, and SSE
+  streaming support.
+- Provider argument conversion and validation driven by JSON configuration.
+- File and directory helpers for walking the repository and reading/writing
+  files safely.
 
----
+There is no full application entry point yet. The root launch scripts and GUI
+folder are placeholders, while the core logic lives under `src/public`.
 
-## Project Structure
-The project root directory contains the following key directories and files:
+## Project layout
 
 ```
 BrainBridge/
-├── config/ # Configuration files
-│ ├── runtime_conf/ # Runtime configurations (editable)
-│ ├── sys_conf/ # System default configurations (read-only)
-│ └── user_conf/ # User-defined configurations (overrides system defaults)
-├── storage/ # Runtime-generated data (logs, metadata, etc.)
-├── src/ # Core source code
-│ ├── public/ # Public modules
-│ │ ├── run_lib/ # Runtime utilities (e.g., request handling, data conversion)
-│ │ └── static_lib/ # Static utilities (shared helper functions)
-│ ├── GUI/ # GUI prototypes
-│ └── .tests/ # Test cases and sandbox
-├── simple_import.py # Dynamic import utility script
-├── launcher.py # Main launcher script
-├── _launcher.py # Auxiliary launcher script
-├── _reset.py # Reset script (cleans runtime data)
-└── README.md # Project documentation
+  config/
+    sys_conf/
+      base_arg_match.json     # Generic arg mapping -> provider args
+      escape_table.json       # Provider input/output schema definitions
+  src/
+    simple_import.py          # Dynamic sys.path helper
+    public/
+      run_lib/                # Runtime helpers (requests, converters, file tools)
+      static_lib/             # Static helpers (package checks, info stubs)
+    stubs/                    # .pyi type stubs for run_lib modules
+    .test/                    # Manual sandbox copy of run_lib/static_lib
+  storage/                    # Runtime output (logs, metadata, etc.)
+  requirements.txt
+  launcher.py / _launcher.py / _reset.py  # Empty placeholders
 ```
 
-~~Actually, there is no readme file.~~
+## Setup
 
----
+1) (Optional) Activate the bundled virtual environment:
 
-## Getting Started
-
-### Environment Setup
-1. **Activate the Virtual Environment**:
-- **Windows (PowerShell)**:
 ```powershell
 .\.venv\Scripts\Activate.ps1
 ```
-- **Unix/MacOS**:
-```bash
-source .venv/Scripts/activate
-```
 
-2. **Install Dependencies**:
-Use `pip` to install the required dependencies (if `requirements.txt` is available):
-```bash
+2) Install dependencies:
+
+```powershell
 pip install -r requirements.txt
 ```
 
-3. **Verify Import Paths**:
-Run the `simple_import.py` script to ensure the dynamic import tool correctly recognizes `run_lib` and `static_lib`:
-```bash
-python simple_import.py
+## Quick smoke test
+
+Run the import helper to confirm `run_lib` and `static_lib` resolution works:
+
+```powershell
+python src/simple_import.py
 ```
 
----
+## Usage
 
-## Development Guidelines
+### Dynamic import helper
 
-### Coding Style
-- **Naming Conventions**:
-- Directories and modules: `snake_case` (e.g., `run_lib`).
-- Classes: `PascalCase` (e.g., `Request`).
-- Functions and variables: `snake_case` (e.g., `validate_message`).
-- Constants: `UPPER_CASE` (e.g., `DEFAULT_TIMEOUT`).
+`src/simple_import.py` provides a small helper that locates `run_lib` and
+`static_lib` and appends the chosen path to `sys.path` at runtime.
 
-- **Code Standards**:
-- Use 4-space indentation.
-- Public functions and classes **must** include Docstrings, following [PEP 257](https://peps.python.org/pep-0257/).
-- Avoid magic numbers; document critical logic with comments or Docstrings.
-- Ensure code passes `python -m py_compile` for syntax validation.
+```python
+from simple_import import change_sys_path, restore_sys_path
 
-### Testing
-- **Test Directory**: Test cases are located in `src/.tests/`.
-- **Run Tests**: Use the following command to execute the sandbox test and verify the project structure:
-```bash
-python src/.tests/sandbox/test.py
+change_sys_path(to_runlib=True)
+from requests_core.request_core import Request
+restore_sys_path()
 ```
-- **Write Tests**: New test files must be named `test_*.py` and placed in `src/.tests/`.
 
----
+Use `restore_sys_path()` after importing to avoid polluting the import path for
+the rest of the program.
 
-## Configuration Management
-The project configurations are categorized into three types, stored in the `config/` directory:
-1. **Runtime Configurations** (`runtime_conf/`): Editable configurations for runtime environments.
-2. **System Configurations** (`sys_conf/`): System default configurations (avoid modifying).
-3. **User Configurations** (`user_conf/`): User-defined configurations that override system defaults.
+### Requests helper
 
-⚠️ **Important**:
-- **Do not** commit sensitive information (e.g., API keys, tokens) to the configuration directories.
-- The `storage/` directory stores runtime-generated logs and data. Exclude it from version control.
+`src/public/run_lib/requests_core/request_core.py` wraps `requests` to provide:
 
----
+- Single or multi-URL GET/POST/PUT/DELETE helpers
+- Optional logging of request events
+- A simple SSE iterator for streaming endpoints
+- A small timing utility (`Time.Timer`)
 
-## Contribution Guidelines
+Example:
 
-### Commit Messages
-- **Format**: Use the `type(scope): summary` pattern. For example:
+```python
+from simple_import import change_sys_path, restore_sys_path
+
+change_sys_path(to_runlib=True)
+from requests_core.request_core import Request
+restore_sys_path()
+
+req = Request(enable_logging=True, timeout=10)
+resp = req.get("https://www.example.com")
+print(resp.status_code)
+print(len(req))  # number of logged events
 ```
-feat(request): add timeout parameter validation
-fix(converter): handle empty content list
+
+### Provider converter
+
+`src/public/run_lib/provider_converter/converter.py` validates and translates
+generic arguments into provider-specific payloads. Validation rules and allowed
+types are stored in `config/sys_conf/escape_table.json`, while the generic
+argument mapping lives in `config/sys_conf/base_arg_match.json`.
+
+Example:
+
+```python
+from simple_import import change_sys_path, restore_sys_path
+
+change_sys_path(to_runlib=True)
+from provider_converter.converter import Converter
+restore_sys_path()
+
+conv = Converter(
+    "openai_completion",
+    model="gpt-4o-mini",
+    input=[{"role": "user", "content": "Hello"}],
+    max_tokens=128
+)
+payload = conv.information
 ```
-- **Single Topic**: Each commit should focus on a single feature or fix.
 
-### Pull Requests (PRs)
-- **Clear Descriptions**: PRs must detail the changes, their purpose, and their impact.
-- **Test Commands**: List relevant test commands (e.g., `python simple_import.py` or sandbox tests).
-- **Environment Changes**: If configurations (e.g., `config/*`) are modified, explain the changes.
-- **UI Changes**: For modifications to `src/GUI/`, include screenshots if applicable.
+Notes:
+- `model` and `input` are required and validated.
+- Generic keys like `input` and `max_tokens` are translated using the mapping
+  in `base_arg_match.json` (for example, `input` -> `messages`).
 
----
+### Files manager
 
-## Common Commands
+`src/public/run_lib/files_manager/manager.py` provides utilities for working
+with repository-relative paths and filesystem IO:
 
-| Command | Description |
-|--------------------------------------|---------------------------------------------|
-| `python simple_import.py` | Verify dynamic import tool functionality. |
-| `python src/.tests/sandbox/test.py` | Run sandbox tests to validate project structure. |
-| `python -m py_compile src/*.py` | Check for syntax errors in source code. |
-| `python launcher.py` | Start the main program. |
+- `return_path_of_dir_under_root_dir()` finds a top-level directory (ex: `config`)
+- `return_dir_member()` lists files and directories in a path
+- `return_full_free()` does a BFS traversal and returns a flat listing
+- `read_file()`, `read_json()`, `write_content_tofile()` read/write content with
+  optional encoding detection via `chardet`
 
----
+Example:
 
-## How to Contribute
-We welcome contributions to the **BrainBridge** project! Follow these steps:
-1. Fork the repository and create a branch.
-2. Adhere to the [Coding Style](#coding-style) and [Commit Guidelines](#commit-messages).
-3. Write test cases and ensure all tests pass.
-4. Submit a Pull Request with a detailed description of the changes.
+```python
+from simple_import import change_sys_path, restore_sys_path
 
----
+change_sys_path(to_runlib=True)
+from files_manager.manager import return_path_of_dir_under_root_dir, read_json
+restore_sys_path()
 
-## License
-This project is licensed under the [MIT License](LICENSE) (if applicable).
+config_root = return_path_of_dir_under_root_dir("config")
+schema = read_json(f"{config_root}/sys_conf/escape_table.json")
+```
 
----
+### Static helpers
 
-## Contact
-For questions or suggestions, please contact the project maintainers:
-- **Email**: serge-workplace@outlook.com\sergewithteto@gmail.com
-- **GitHub**: [BrainBridge](https://github.com/yourusername/BrainBridge)
+`src/public/static_lib/checker/version_checker.py` exposes a lightweight
+`check_packages()` helper to check import availability without importing.
 
----
+```python
+from simple_import import change_sys_path, restore_sys_path
 
-**BrainBridge** aims to build an efficient, scalable, and maintainable Python toolkit. Thank you for your contributions and support! 🚀
+change_sys_path(to_staticlib=True)
+from checker.version_checker import check_packages
+restore_sys_path()
+
+print(check_packages(["requests", "chardet", "PySide6"]))
+```
+
+## Configuration
+
+`config/sys_conf` stores provider metadata and conversion rules:
+
+- `base_arg_match.json` defines generic argument mappings and required fields.
+- `escape_table.json` provides the allowed parameter sets and output schema
+  shapes for supported providers.
+
+The `Converter` class reads both files to validate types and translate generic
+arguments into provider-specific payloads.
+
+## Tests and sandbox
+
+There is no automated test runner yet. A manual sandbox tree exists under
+`src/.test/sandbox/` that mirrors parts of `run_lib` and `static_lib` for quick
+experimentation and isolated checks.
+
+## Type stubs
+
+`src/stubs/` contains `.pyi` files for the `run_lib` modules so editors can
+provide type hints without importing the runtime code.
+
+## Development notes
+
+- Keep new runtime modules under `src/public/run_lib` and static helpers under
+  `src/public/static_lib`.
+- Use `src/simple_import.py` to resolve those libraries before importing them.
+- `storage/` is treated as runtime output and should stay out of source control.
+
+## Status
+
+The repository currently provides reusable building blocks rather than a full
+application. The root launcher scripts and `src/GUI/` are placeholders for
+future expansion.
