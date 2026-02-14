@@ -60,7 +60,7 @@
               vairy = {"Content-Type": "application/json","Authorization": "Bearer sk-****"}
               information = Converter("openai_completion", model ='gpt-5-nano', input = _history, stream = True)
               assistant_output = req_er.request_sse(method="POST",
-                                                    url="https://api.vectorengine.ai/v1/chat/completions",
+                                                    url="https://api.***.com/v1/chat/completions",
                                                     json=information.information, headers=vairy)
 
               print("\nAssistant:", end=' ')
