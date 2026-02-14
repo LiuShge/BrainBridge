@@ -35,3 +35,16 @@ class Converter:
             - None: if str_type contains unsupported types.
         """
         pass
+    @staticmethod
+    def _generic_arg_replace(provider: str, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Convert generic argument names to provider-specific ones based on mapping rules,
+        and perform basic validation.
+
+        This method supports loading mapping configurations from 'base_arg_match.json'.
+
+        :param provider: Name of the service provider (e.g., 'openai', 'anthropic').
+        :param kwargs: Keyword arguments representing generic parameters.
+        :return: A dictionary with translated and validated provider-specific arguments.
+        """
+        pass
