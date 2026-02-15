@@ -25,7 +25,7 @@ def return_dir_member(dir_path: str) -> Union[Dict[str, Literal['file', 'dir']],
     """
     pass
 
-def _valid_path(target_path: str, is_file: bool = True) -> None:
+def valid_path(target_path: str, is_file: bool = True) -> None:
     """
         Validates if a given path exists and is either a file or a directory.
 

@@ -84,7 +84,7 @@ def return_dir_member(dir_path: str) -> Union[Dict[str, Literal['file', 'dir']],
     return _member_list
 
 
-def _valid_path(target_path: str, is_file: bool = True) -> None:
+def valid_path(target_path: str, is_file: bool = True) -> None:
     """
     Validates if a given path exists and is either a file or a directory.
 
@@ -94,9 +94,9 @@ def _valid_path(target_path: str, is_file: bool = True) -> None:
     Example:
     >>> import tempfile
     >>> with tempfile.NamedTemporaryFile() as tmp_file:
-    ...     _valid_path(tmp_file.name, is_file=True)
+    ...     valid_path(tmp_file.name, is_file=True)
     >>> try:
-    ...     _valid_path("/non_existent_path", is_file=True)
+    ...     valid_path("/non_existent_path", is_file=True)
     ... except ValueError as e:
     ...     print(e)
     Invalid path: /non_existent_path
@@ -173,7 +173,7 @@ def return_full_tree(*base_paths: str) -> Dict[str, List[Union[str, Dict[str, Li
     result_tree: Dict[str, List[Union[str, Dict[str, List[Any]]]]] = {}
 
     for base_path_str in base_paths:
-        _valid_path(base_path_str, is_file=False)
+        valid_path(base_path_str, is_file=False)
 
         current_base_path_list: List[Union[str, Dict[str, List[Any]]]] = []
         result_tree[base_path_str] = current_base_path_list
@@ -261,7 +261,7 @@ def write_content_tofile(file_path: str, content:str, file_code: Literal['utf-8'
     Second line
     >>> os.remove(tmp_file_path)
     """
-    _valid_path(file_path)
+    valid_path(file_path)
     if file_code == 'auto':
             file_code = _auto_file_code(file_path)
     with open(file_path, 'a' if not override else 'w', encoding=file_code) as f:
@@ -291,7 +291,7 @@ def read_file(file_path: str, line_by_line: bool = False, file_code: Literal['ut
     Line 3
     >>> os.remove(tmp_file_path)
     """
-    _valid_path(file_path)
+    valid_path(file_path)
     if file_code == 'auto':
         file_code = _auto_file_code(file_path)
     with open(file_path, 'r', encoding=file_code) as f:
@@ -339,7 +339,7 @@ def read_json(file_path: str, file_code: Literal['utf-8', 'auto'] = 'utf-8', par
     True
     >>> os.remove(tmp_file_bad_path)
     """
-    _valid_path(file_path)
+    valid_path(file_path)
     if file_code == "auto":
         file_code = _auto_file_code(file_path)
     with open(file_path, 'r', encoding=file_code) as f:
