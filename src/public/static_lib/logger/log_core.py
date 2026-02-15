@@ -1,11 +1,15 @@
+from set_source_dir import _set_source_dir,_restore_sys_path
+from sys import path as sys_path
+_set_source_dir()
+print(sys_path)
 from simple_import import change_sys_path, restore_sys_path
 
 change_sys_path(to_runlib=True)
 from mini_tools.timer import Time
-from files_manager.manager import write_content_tofile, _valid_path
+from files_manager.manager import write_content_tofile
 
 restore_sys_path()
-
+_restore_sys_path()
 import json
 from typing import TypedDict, Literal, List, Dict, Any, Optional, Union
 from enum import Enum

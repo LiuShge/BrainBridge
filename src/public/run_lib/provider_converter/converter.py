@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from os import path
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
+from set_source_dir import _set_source_dir,_restore_sys_path
+_set_source_dir()   # let simple_import can be import
 
 from simple_import import change_sys_path, restore_sys_path
-
-change_sys_path(to_runlib=True)
+change_sys_path(to_runlib=True) # let libs under run_lib can be import
 from files_manager.manager import *
 
 restore_sys_path()
-
+_restore_sys_path()
 
 class _ConfigEngine:
     """

@@ -1,4 +1,4 @@
-from os import path, listdir
+from os import path, listdir, scandir
 from typing import Dict, Literal, List, Union, Any, Set
 from json import loads, JSONDecodeError
 from chardet import detect
@@ -108,113 +108,76 @@ def valid_path(target_path: str, is_file: bool = True) -> None:
     if not is_file and not path.isdir(target_path):
         raise ValueError(f"Path is not a directory: {target_path}")
 
-
-def return_full_tree(*base_paths: str) -> Dict[str, List[Union[str, Dict[str, List[Any]]]]]:
+def return_full_tree(*base_paths: str) -> Dict[str, List[Union[str, Dict[str, Any]]]]:
     """
-    Recursively traverses one or more base directories and returns a flattened list
-    of their full file and directory paths. Directories are represented as
-    dictionaries with an empty list value. Handles symbolic links to prevent
-    infinite loops.
+    Highly optimized recursive traversal using os.scandir to minimize system calls.
+    Provides a nested tree structure with normalized forward-slash paths.
+
+    Key Optimizations:
+    - Uses `os.scandir` to retrieve directory entries and metadata in a single pass.
+    - Minimizes redundant `os.path` calls and string manipulations.
+    - Prevents infinite recursion from symbolic links using a real-path cache.
 
     :param base_paths: One or more root directory paths to start the traversal from.
-    :return: A dictionary where keys are the base paths, and values are lists
-             containing strings (for files) or dictionaries (for directories with empty lists).
+    :return: A dictionary where keys are the normalized base paths, and values are
+             nested lists of file paths and subdirectory dictionaries.
     :raises ValueError: If any of the base_paths are invalid or not directories.
-
-    Example:
-    >>> import tempfile, os, shutil
-    >>> with tempfile.TemporaryDirectory() as tmpdir:
-    ...     dir1_path = os.path.join(tmpdir, "dir1")
-    ...     subdir1_path = os.path.join(dir1_path, "subdir1")
-    ...     file1_path = os.path.join(dir1_path, "file1.txt")
-    ...     file2_path = os.path.join(subdir1_path, "file2.txt")
-    ...     os.makedirs(subdir1_path)
-    ...     with open(file1_path, "w") as f: f.write("content")
-    ...     with open(file2_path, "w") as f: f.write("content")
-    ...     tree = return_full_tree(dir1_path)
-    ...     # Expected output will be a flat list containing dir1_path, file1_path, subdir1_path, file2_path
-    ...     expected_items = {dir1_path, file1_path, subdir1_path, file2_path}
-    ...     # Note: The order in the list might vary based on os.listdir() and set behavior
-    ...     returned_set = set()
-    ...     for item in tree[dir1_path]:
-    ...         if isinstance(item, dict):
-    ...             for k in item:
-    ...                 returned_set.add(k)
-    ...         else:
-    ...             returned_set.add(item)
-    ...     print(returned_set == expected_items)
-    True
-
-    >>> # Example with a symbolic link loop
-    >>> with tempfile.TemporaryDirectory() as temp_root:
-    ...     dir_a = os.path.join(temp_root, "dir_a")
-    ...     dir_b = os.path.join(temp_root, "dir_b")
-    ...     link_path = os.path.join(dir_b, "link_to_dir_a")
-    ...     os.makedirs(dir_a, exist_ok=True)
-    ...     os.makedirs(dir_b, exist_ok=True)
-    ...     # Create a file in dir_a to make it non-empty
-    ...     with open(os.path.join(dir_a, "test_file_in_a.txt"), "w") as f: f.write("content")
-    ...     os.symlink(os.path.join("..", "dir_a"), link_path, target_is_directory=True)
-    ...     loop_tree = return_full_tree(temp_root)
-    ...     # Check if the symlink_to_dir_a is present as a directory marker
-    ...     # And that dir_a is also present, but link_to_dir_a's contents are not re-traversed.
-    ...     all_paths_in_output = set()
-    ...     for item in loop_tree[temp_root]:
-    ...         if isinstance(item, dict):
-    ...             for k in item:
-    ...                 all_paths_in_output.add(k)
-    ...         else:
-    ...             all_paths_in_output.add(item)
-    ...     # Expecting temp_root, dir_a, dir_b, link_path (as dir), test_file_in_a.txt
-    ...     expected_paths = {temp_root, dir_a, dir_b, link_path, os.path.join(dir_a, "test_file_in_a.txt")}
-    ...     print(all_paths_in_output == expected_paths)
-    True
     """
-    result_tree: Dict[str, List[Union[str, Dict[str, List[Any]]]]] = {}
+    result_tree: Dict[str, List[Union[str, Dict[str, Any]]]] = {}
+
+    _realpath = path.realpath
+    _join = path.join
+    _normpath = path.normpath
+
+    def _fast_normalize(p: str) -> str:
+        """
+        Internal helper for rapid path normalization.
+        """
+        return _normpath(p).replace("\\", "/")
+
+    def _explore_recursive(current_dir: str, visited: Set[str]) -> List[Union[str, Dict[str, Any]]]:
+        """
+        Optimized internal recursion using scandir entries.
+        """
+        content_list: List[Union[str, Dict[str, Any]]] = []
+
+        try:
+            # Entry contains both name and path, plus cached is_dir/is_file status
+            # Sorting entries by name to maintain consistent output
+            entries = sorted(scandir(current_dir), key=lambda e: e.name)
+
+            for entry in entries:
+                raw_path = entry.path
+                normalized_path = _fast_normalize(raw_path)
+
+                if entry.is_dir(follow_symlinks=True):
+                    # Realpath is only checked for directories to prevent loops
+                    real_p = _realpath(raw_path)
+                    if real_p in visited:
+                        content_list.append({normalized_path: [f"_loop_detected_at:{normalized_path}"]})
+                        continue
+
+                    # Create a new visited set for this branch to allow same dir
+                    # to appear in different branches but not in the same lineage
+                    new_visited = visited | {real_p}
+                    content_list.append({
+                        normalized_path: _explore_recursive(raw_path, new_visited)
+                    })
+                elif entry.is_file():
+                    content_list.append(normalized_path)
+
+        except PermissionError:
+            content_list.append(f"_permission_denied_for:{_fast_normalize(current_dir)}")
+        except OSError as e:
+            content_list.append(f"_error_accessing:{_fast_normalize(current_dir)}:{e}")
+
+        return content_list
 
     for base_path_str in base_paths:
         valid_path(base_path_str, is_file=False)
-
-        current_base_path_list: List[Union[str, Dict[str, List[Any]]]] = []
-        result_tree[base_path_str] = current_base_path_list
-
-        # Use a queue for breadth-first traversal
-        directories_to_explore: List[str] = []
-        visited_real_paths: Set[str] = set()
-
-        # Add the base path itself to the list as a directory marker
-        current_base_path_list.append({base_path_str: []})
-
-        # Add the real path of the base directory to visited set
-        visited_real_paths.add(path.realpath(base_path_str))
-
-        # Start exploration from the base path
-        directories_to_explore.append(base_path_str)
-
-        while directories_to_explore:
-            current_directory = directories_to_explore.pop(0)  # BFS: pop from left
-
-            try:
-                for item_name in listdir(current_directory):
-                    item_full_path = path.join(current_directory, item_name)
-                    item_real_path = path.realpath(item_full_path)
-
-                    if path.isdir(item_full_path):
-                        # Always add the directory (or symlink to dir) to the result list
-                        current_base_path_list.append({item_full_path: []})
-
-                        # Only add to queue for exploration if its real path hasn't been visited
-                        if item_real_path not in visited_real_paths:
-                            visited_real_paths.add(item_real_path)
-                            directories_to_explore.append(item_full_path)
-                    elif path.isfile(item_full_path):
-                        # Add to the result list as a file path
-                        current_base_path_list.append(item_full_path)
-                    # Other file system objects (like symlinks to files, pipes, sockets) are ignored for this output format
-            except PermissionError:
-                current_base_path_list.append(f"_permission_denied_for:{current_directory}")
-            except OSError as e:
-                current_base_path_list.append(f"_error_accessing:{current_directory}:{e}")
+        norm_base = _fast_normalize(base_path_str)
+        # Initialize visited with the starting directory's real path
+        result_tree[norm_base] = _explore_recursive(base_path_str, {_realpath(base_path_str)})
 
     return result_tree
 
@@ -261,7 +224,13 @@ def write_content_tofile(file_path: str, content:str, file_code: Literal['utf-8'
     Second line
     >>> os.remove(tmp_file_path)
     """
-    valid_path(file_path)
+    try:
+        valid_path(file_path)
+    except (FileNotFoundError, ValueError) as e:
+        if override:
+            with open(file_path,"w") as f: f.close()
+        else:
+            raise
     if file_code == 'auto':
             file_code = _auto_file_code(file_path)
     with open(file_path, 'a' if not override else 'w', encoding=file_code) as f:

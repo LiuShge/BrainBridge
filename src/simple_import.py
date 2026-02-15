@@ -126,7 +126,8 @@ def change_sys_path(to_runlib: bool = False, to_staticlib: bool = False) -> None
         >>> change_sys_path(to_staticlib=True)  # Appends static_lib to sys.path
     """
     global _INITIAL_SYS_PATH
-    _INITIAL_SYS_PATH = sys_path.copy()
+    if _INITIAL_SYS_PATH is None:
+        _INITIAL_SYS_PATH = sys_path.copy()
     if to_runlib == to_staticlib:
         raise ValueError(
             "Must specify exactly one of `to_runlib` or `to_staticlib` as True."
