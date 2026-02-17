@@ -60,11 +60,10 @@ BrainBridge/
 │ │ │ ├── provider_converter/ # LLM Argument Normalization Middleware
 │ │ │ └── mini_tools/ # Atomic utilities (TUI, Timer, FileConvg)
 │ │ └── static_lib/ # [The Foundation]
-│ │ ├── checker/ # Self-Healing Integrity & Version Control
-│ │ ├── logger/ # Zero-dependency Structured Logging
-│ │ └── information/ # Dual-layer Configuration (Sys/User)
-│ ├── stubs/ # [The Contract] Hand-written Type Definitions
-│ └── GUI/ # (Reserved) Future Graphical Interfaces
+│ │   ├── checker/ # Self-Healing Integrity & Version Control
+│ │   ├── logger/ # Zero-dependency Structured Logging
+│ │   └── information/ # Dual-layer Configuration (Sys/User)
+│ └── stubs/ # [The Contract] Hand-written Type Definitions
 └── main.py # Entry point with Environment Injection
 ```
 
@@ -107,14 +106,14 @@ from src.public.run_lib.provider_converter.converter import Converter
 # 1. Normalize Arguments for OpenAI
 # This validates types and maps keys based on 'escape_table.json'
 try:
-llm_payload = Converter(
-provider="openai",
-model="gpt-4-turbo",
-messages=[{"role": "user", "content": "Explain Quantum Mechanics."}],
-stream=True
-).information
+  llm_payload = Converter(
+    provider="openai",
+    model="gpt-4-turbo",
+    messages=[{"role": "user", "content": "Explain Quantum Mechanics."}],
+    stream=True
+    ).information
 except ValueError as e:
-print(f"Config Error: {e}")
+  print(f"Config Error: {e}")
 exit(1)
 
 # 2. Initialize Network Engine
@@ -127,8 +126,8 @@ url = "https://api.openai.com/v1/chat/completions"
 headers = {"Authorization": "Bearer sk-..."}
 
 for event in req.request_sse(method="POST", url=url, json=llm_payload, headers=headers):
-# 'event' is a parsed dictionary: {'id':..., 'event':..., 'data':...}
-print(event.get('data'), end="", flush=True)
+  # 'event' is a parsed dictionary: {'id':..., 'event':..., 'data':...}
+  print(event.get('data'), end="", flush=True)
 
 # 4. Check Logs
 print(f"\nTotal Logs: {len(req)}")
@@ -142,17 +141,17 @@ from src.public.run_lib.mini_tools.decision_panel import DecisionPanelPage
 
 # Initialize the TUI Page
 menu = DecisionPanelPage(
-title="BrainBridge Control Center",
-prompt_text="Select Deployment Mode",
-operation_tips="[W/S] Navigate [Enter] Confirm"
-)
+  title="BrainBridge Control Center",
+  prompt_text="Select Deployment Mode",
+  operation_tips="[W/S] Navigate [Enter] Confirm"
+  )
 
 # Define Options
 menu.set_options([
-{"prompt": "🚀 Production Mode", "output": "prod"},
-{"prompt": "🛠️ Debug Mode", "output": "debug"},
-{"prompt": "📂 Safe Mode (No Network)", "output": "safe"}
-])
+  {"prompt": "🚀 Production Mode", "output": "prod"},
+  {"prompt": "🛠️ Debug Mode", "output": "debug"},
+  {"prompt": "📂 Safe Mode (No Network)", "output": "safe"}
+  ])
 
 # Run the Event Loop
 selected_mode = menu.run_once()
@@ -167,8 +166,8 @@ from src.public.run_lib.mini_tools.files_convg import aggregate_to_backup
 
 # Define the tree to pack
 target_tree = {
-"./src": ["./src/main.py", "./src/utils.py"]
-}
+  "./src": ["./src/main.py", "./src/utils.py"]
+  }
 
 # Generate snapshot
 aggregate_to_backup(target_tree, output_backup_path="./snapshots/v1.bb")
