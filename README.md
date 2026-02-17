@@ -192,4 +192,15 @@ This project is licensed under the **MIT License**.
 *Use it, fork it, study it. Just keep it clean.*
 
 
+## ☕ Support the Project
+
+As a **14-year-old student developer**, maintaining and testing this framework requires significant API usage and infrastructure costs. If **BrainBridge** has provided value to your workflow, or if you wish to support the research into high-efficiency LLM runtimes, any form of sponsorship would be greatly appreciated.
+
+Your support helps cover API tokens, server costs, and enables the continued development of this "Atomic" ecosystem.
+
+- **Check [FundDevelopers/](./FundDevelopers/)** for sponsorship details and QR codes.
+- **For domestic developers (China)**: Support the student architect directly via Alipay/WeChat.
+
+*Every star and every coffee counts. Thank you for empowering the next generation of developers.* 🚀
+
 `Developers in China, if you have a significant interest in this project, you can sponsor the developer... As a student, he has very limited funds to invest in development...`
