@@ -190,3 +190,6 @@ The goal was not to build "just another wrapper," but to prove that with a clear
 
 This project is licensed under the **MIT License**.
 *Use it, fork it, study it. Just keep it clean.*
+
+
+`Developers in China, if you have a significant interest in this project, you can sponsor the developer... As a student, he has very limited funds to invest in development...`
