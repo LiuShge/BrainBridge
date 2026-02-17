@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from os import path
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
-from set_source_dir import _set_source_dir,_restore_sys_path
+if __name__ == "__main__":
+    from set_source_dir import _set_source_dir,_restore_sys_path
+else:
+    from .set_source_dir import _set_source_dir,_restore_sys_path
 _set_source_dir()   # let simple_import can be import
 
 from simple_import import change_sys_path, restore_sys_path

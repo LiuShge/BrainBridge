@@ -1,0 +1,42 @@
+{
+  "based_args": ["messages","model","stream","max_tokens","usage"],
+  "openai_completion": {
+    "input": {
+      "messages": "messages",
+      "model": "model",
+      "stream": "stream",
+      "max_tokens": "max_completion_tokens",
+      "usage": ""
+    },
+    "output": {
+      "model": "model",
+      "messages": "*choices/message",
+      "stream": "",
+      "max_tokens": "",
+      "usage": "usage"
+    },
+    "stream.output": {
+      "model": "model",
+      "messages": "*choices/delta",
+      "stream": "",
+      "max_token": "",
+      "usage": "usage"
+    }
+  },
+  "openai_response": {
+    "input": {
+      "messages": "input",
+      "model": "model",
+      "stream": "stream",
+      "max_tokens": "max_output_tokens",
+      "usage": ""
+    },
+    "output": {
+      "model": "model",
+      "messages": "output",
+      "stream": "",
+      "max_tokens": "",
+      "usage": "usage"
+    }
+  }
+}

@@ -12,9 +12,9 @@ class Time:
 
     class Timer:
         """
-        A high-precision timer for measuring elapsed time with customizable decimal precision.
+        A high-precision _timer for measuring elapsed time with customizable decimal precision.
 
-        This timer uses `perf_counter()` for maximum accuracy and supports runtime precision adjustment.
+        This _timer uses `perf_counter()` for maximum accuracy and supports runtime precision adjustment.
         Ideal for benchmarking src execution time or timing operations in performance-sensitive applications.
 
         Key Features:
@@ -28,12 +28,12 @@ class Time:
         - Not thread-safe (use separate instances in multi-threaded contexts).
 
         Example:
-        >>> timer = Time.Timer(precision=2)
+        >>> _timer = Time.Timer(precision=2)
         >>> Time.sleep(0.01)
-        >>> timer.passed()
+        >>> _timer.passed()
         '0.01'
-        >>> timer.reset()
-        >>> print(timer.passed())
+        >>> _timer.reset()
+        >>> print(_timer.passed())
         0.00
         """
 
@@ -49,7 +49,7 @@ class Time:
                 ValueError: If precision is not in [1, 2, 3, 4].
 
             Example:
-            >>> timer = Time.Timer(3)  # Initialize with 3 decimal places
+            >>> _timer = Time.Timer(3)  # Initialize with 3 decimal places
             """
             if not isinstance(precision, int) or precision not in [1, 2, 3, 4]:
                 raise ValueError("Precision must be 1, 2, 3, or 4.")
@@ -66,8 +66,8 @@ class Time:
                 Current precision (1-4).
 
             Example:
-            >>> timer = Time.Timer(2)
-            >>> print(timer.precision)
+            >>> _timer = Time.Timer(2)
+            >>> print(_timer.precision)
             2
             """
             return self._precision
@@ -84,8 +84,8 @@ class Time:
                 ValueError: If value is not in [1, 2, 3, 4].
 
             Example:
-            >>> timer = Time.Timer(2)
-            >>> timer.precision = 4
+            >>> _timer = Time.Timer(2)
+            >>> _timer.precision = 4
             """
             if not isinstance(value, int) or value not in [1, 2, 3, 4]:
                 raise ValueError("Precision must be 1, 2, 3, or 4.")
@@ -93,15 +93,15 @@ class Time:
 
         def passed(self) -> str:
             """
-            Get the elapsed time since the timer was started or last reset.
+            Get the elapsed time since the _timer was started or last reset.
 
             Returns:
                 Formatted string of elapsed time with specified precision (e.g., '1.23').
 
             Example:
-            >>> timer = Time.Timer(3)
+            >>> _timer = Time.Timer(3)
             >>> Time.sleep(0.0025)
-            >>> timer.passed()
+            >>> _timer.passed()
             '0.005'
             """
             elapsed_time = perf_counter() - self._start_time
@@ -109,13 +109,13 @@ class Time:
 
         def reset(self):
             """
-            Reset the timer's start time to the current moment.
+            Reset the _timer's start time to the current moment.
 
             Example:
-            >>> timer = Time.Timer(2)
+            >>> _timer = Time.Timer(2)
             >>> Time.sleep(0.1)
-            >>> timer.reset()
-            >>> print(timer.passed())
+            >>> _timer.reset()
+            >>> print(_timer.passed())
             0.00
             """
             self._start_time = perf_counter()

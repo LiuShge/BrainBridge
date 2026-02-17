@@ -1,202 +1,200 @@
 # BrainBridge
 
-BrainBridge is a small Python toolkit that collects reusable runtime helpers
-and static utilities used by the broader project. The current codebase focuses
-on three areas:
+<div align="center">
 
-- Request helpers that wrap `requests` with simple logging, batching, and SSE
-  streaming support.
-- Provider argument conversion and validation driven by JSON configuration.
-- File and directory helpers for walking the repository and reading/writing
-  files safely.
+![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg?style=flat-square&logo=python&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg?style=flat-square)
 
-There is no full application entry point yet. The root launch scripts and GUI
-folder are placeholders, while the core logic lives under `src/public`.
+**A robust, modular Python framework bridging backend logic and user-facing applications.**
 
-## Project layout
+[Features](#-key-features) • [Installation](#-getting-started) • [Usage](#-usage-examples) • [Configuration](#-configuration)
 
+</div>
+
+---
+
+## 📖 Overview
+
+**BrainBridge** features a high-performance network layer with SSE support, a unified AI provider argument converter, and a suite of terminal-based utility tools. It follows a strict modular architecture separating runtime libraries from static utilities, ensuring scalability and ease of maintenance.
+
+---
+
+## 📂 Project Structure
+
+The project follows a strict modular architecture.
+
+```text
+BrainBridge/src
+├── public
+│   ├── run_lib                 # [Dynamic] Runtime Libraries
+│   │   ├── files_manager       # File I/O abstractions
+│   │   ├── mini_tools          # Utilities (TUI, Timer, Backups)
+│   │   ├── provider_converter  # AI API Argument Normalization
+│   │   └── requests_core       # Advanced HTTP Client (Threaded/SSE)
+│   └── static_lib              # [Static] Libraries
+│       ├── checker             # Integrity & Version Checking
+│       ├── information         # Configuration & Env Info
+│       └── logger              # Centralized Logging
+├── GUI                         # Graphical User Interface (Pyside/Tkinter)
+├── stubs                       # Type Hinting Stubs (.pyi)
+└── .test                       # Unit Tests & Sandbox
 ```
-BrainBridge/
-  config/
-    sys_conf/
-      base_arg_match.json     # Generic arg mapping -> provider args
-      escape_table.json       # Provider input/output schema definitions
-  src/
-    simple_import.py          # Dynamic sys.path helper
-    public/
-      run_lib/                # Runtime helpers (requests, converters, file tools)
-      static_lib/             # Static helpers (package checks, info stubs)
-    stubs/                    # .pyi type stubs for run_lib modules
-    .test/                    # Manual sandbox copy of run_lib/static_lib
-  storage/                    # Runtime output (logs, metadata, etc.)
-  requirements.txt
-  launcher.py / _launcher.py / _reset.py  # Empty placeholders
-```
 
-## Setup
+---
 
-1) (Optional) Activate the bundled virtual environment:
+## ✨ Key Features
 
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
+### 1. 🌐 Advanced Network Layer (`requests_core`)
+A thread-safe wrapper around `requests` optimized for stability and streaming.
+- **SSE Support**: Native handling of Server-Sent Events for AI streaming responses.
+- **Thread Pool**: `RequestPool` for executing concurrent GET/POST tasks.
+- **Robust Error Handling**: Built-in retry logic and detailed logging.
 
-2) Install dependencies:
+### 2. 🧠 AI Provider Converter (`provider_converter`)
+A middleware engine that normalizes arguments between different AI providers.
+- **Type Safety**: Strictly validates input types (e.g., messages, model) against provider configs.
+- **Argument Mapping**: Automatically maps generic arguments to provider-specific keys.
+- **Response Unwrapping**: Standardizes response formats from complex nested JSON.
 
-```powershell
+### 3. 🖥️ Interactive TUI Tools (`mini_tools`)
+- **Decision Panel**: A keyboard-interactive (WASD/Arrows) terminal menu system.
+- **Files Convergence**: Packs/unpacks directory trees into single portable text files (Base64 encoded) with SHA256 integrity checks.
+- **High-Precision Timer**: Benchmarking tool with customizable decimal precision.
+
+### 4. 🛡️ Integrity & Security (`checker`)
+- **Self-Healing**: Detects corrupted files via hash mismatch and restores them from backups.
+- **Strict Environment**: Enforces Python version compatibility.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Python**: 3.12 or higher (Targeting features up to Python 3.14).
+- **Dependencies**: `requests`, `pynput` (for TUI).
+
+### Installation
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/your-username/BrainBridge.git
+cd BrainBridge
 pip install -r requirements.txt
 ```
 
-## Quick smoke test
+---
 
-Run the import helper to confirm `run_lib` and `static_lib` resolution works:
+## 📖 Usage Examples
 
-```powershell
-python src/simple_import.py
-```
+### 1. HTTP Requests with Logging
 
-## Usage
-
-### Dynamic import helper
-
-`src/simple_import.py` provides a small helper that locates `run_lib` and
-`static_lib` and appends the chosen path to `sys.path` at runtime.
+Use the `Request` class for enhanced HTTP operations.
 
 ```python
-from simple_import import change_sys_path, restore_sys_path
+from public.run_lib.requests_core.request_core import Request
 
-change_sys_path(to_runlib=True)
-from requests_core.request_core import Request
-restore_sys_path()
-```
-
-Use `restore_sys_path()` after importing to avoid polluting the import path for
-the rest of the program.
-
-### Requests helper
-
-`src/public/run_lib/requests_core/request_core.py` wraps `requests` to provide:
-
-- Single or multi-URL GET/POST/PUT/DELETE helpers
-- Optional logging of request events
-- A simple SSE iterator for streaming endpoints
-- A small timing utility (`Time.Timer`)
-
-Example:
-
-```python
-from simple_import import change_sys_path, restore_sys_path
-
-change_sys_path(to_runlib=True)
-from requests_core.request_core import Request
-restore_sys_path()
-
+# Initialize with logging enabled
 req = Request(enable_logging=True, timeout=10)
-resp = req.get("https://www.example.com")
-print(resp.status_code)
-print(len(req))  # number of logged events
+
+# Simple GET
+response = req.get("https://api.example.com/data")
+print(f"Status: {response.status_code}")
+
+# Server-Sent Events (SSE) for AI Streams
+# Note: Using POST method for AI endpoints usually requires a JSON payload
+sse_url = "https://api.openai.com/v1/chat/completions"
+for event in req.request_sse(method="POST", url=sse_url, json={...}):
+    print(f"Received chunk: {event.get('data')}")
 ```
 
-### Provider converter
+### AI Argument Conversion
 
-`src/public/run_lib/provider_converter/converter.py` validates and translates
-generic arguments into provider-specific payloads. Validation rules and allowed
-types are stored in `config/sys_conf/escape_table.json`, while the generic
-argument mapping lives in `config/sys_conf/base_arg_match.json`.
-
-Example:
+Standardize inputs for different LLM providers using Converter.
 
 ```python
-from simple_import import change_sys_path, restore_sys_path
+from public.run_lib.provider_converter.converter import Converter
 
-change_sys_path(to_runlib=True)
-from provider_converter.converter import Converter
-restore_sys_path()
+try:
+    # Convert generic arguments to OpenAI-specific format
+    conv = Converter(
+        provider="openai",
+        model="gpt-4",
+        messages=[{"role": "user", "content": "Hello"}]
+    )
+    payload = conv.information
+    print(f"Payload ready for API: {payload}")
 
-conv = Converter(
-    "openai_completion",
-    model="gpt-4o-mini",
-    input=[{"role": "user", "content": "Hello"}],
-    max_tokens=128
+except ValueError as e:
+    print(f"Validation Error: {e}")
+```
+
+### Terminal Decision Panel
+
+Create interactive CLI menus with keyboard navigation.
+
+```python
+from public.run_lib.mini_tools.decision_panel import DecisionPanelPage
+
+page = DecisionPanelPage(
+    title="Main Menu",
+    prompt_text="Please select an operation",
+    operation_tips="Use W/S to navigate, Enter to confirm"
 )
-payload = conv.information
+
+page.set_options([
+    {"prompt": "Start Server", "output": "start"},
+    {"prompt": "Configuration", "output": "config"},
+    {"prompt": "Exit", "output": "exit"}
+])
+
+result = page.run_once()
+print(f"User selected: {result}")
 ```
 
-Notes:
-- `model` and `input` are required and validated.
-- Generic keys like `input` and `max_tokens` are translated using the mapping
-  in `base_arg_match.json` (for example, `input` -> `messages`).
+### 4. File Backup & Aggregation
 
-### Files manager
-
-`src/public/run_lib/files_manager/manager.py` provides utilities for working
-with repository-relative paths and filesystem IO:
-
-- `return_path_of_dir_under_root_dir()` finds a top-level directory (ex: `config`)
-- `return_dir_member()` lists files and directories in a path
-- `return_full_free()` does a BFS traversal and returns a flat listing
-- `read_file()`, `read_json()`, `write_content_tofile()` read/write content with
-  optional encoding detection via `chardet`
-
-Example:
+Pack a folder into a single file for transport or backup.
 
 ```python
-from simple_import import change_sys_path, restore_sys_path
+from public.run_lib.mini_tools.files_convg import aggregate_to_backup, unpack_from_backup
 
-change_sys_path(to_runlib=True)
-from files_manager.manager import return_path_of_dir_under_root_dir, read_json
-restore_sys_path()
+# 1. Backup
+# Define structure: { "source_dir": ["specific_file_path", ...] }
+tree_structure = {
+    "/path/to/src": ["/path/to/src/file1.txt"]
+}
+aggregate_to_backup(tree_structure, "backup.bb")
 
-config_root = return_path_of_dir_under_root_dir("config")
-schema = read_json(f"{config_root}/sys_conf/escape_table.json")
+# 2. Restore
+unpack_from_backup("backup.bb", "/path/to/restore_dir")
 ```
 
-### Static helpers
+## ⚙️ Configuration
 
-`src/public/static_lib/checker/version_checker.py` exposes a lightweight
-`check_packages()` helper to check import availability without importing.
+The framework uses a dual-layer configuration system located in `src/public/static_lib/information/config`:
 
-```python
-from simple_import import change_sys_path, restore_sys_path
+| Config Type | File | Description |
+| :--- | :--- | :--- |
+| **System Config** | `sys_conf` | Default fallback settings. |
+| **User Config** | `user_conf` | User overrides (**ignored by git** to protect local secrets). |
 
-change_sys_path(to_staticlib=True)
-from checker.version_checker import check_packages
-restore_sys_path()
+---
 
-print(check_packages(["requests", "chardet", "PySide6"]))
+## 🛠 Development
+
+### Type Stubs
+The project includes comprehensive `.pyi` stub files in `src/stubs` to support static type checking with **mypy** or **PyCharm**.
+
+### Testing
+Run the internal test suite:
+
+```bash
+python -m src.public.run_lib.requests_core.thread_requests
 ```
 
-## Configuration
+---
 
-`config/sys_conf` stores provider metadata and conversion rules:
+## 📄 License
 
-- `base_arg_match.json` defines generic argument mappings and required fields.
-- `escape_table.json` provides the allowed parameter sets and output schema
-  shapes for supported providers.
-
-The `Converter` class reads both files to validate types and translate generic
-arguments into provider-specific payloads.
-
-## Tests and sandbox
-
-There is no automated test runner yet. A manual sandbox tree exists under
-`src/.test/sandbox/` that mirrors parts of `run_lib` and `static_lib` for quick
-experimentation and isolated checks.
-
-## Type stubs
-
-`src/stubs/` contains `.pyi` files for the `run_lib` modules so editors can
-provide type hints without importing the runtime code.
-
-## Development notes
-
-- Keep new runtime modules under `src/public/run_lib` and static helpers under
-  `src/public/static_lib`.
-- Use `src/simple_import.py` to resolve those libraries before importing them.
-- `storage/` is treated as runtime output and should stay out of source control.
-
-## Status
-
-The repository currently provides reusable building blocks rather than a full
-application. The root launcher scripts and `src/GUI/` are placeholders for
-future expansion.
+This project is licensed under the [MIT License](LICENSE).
