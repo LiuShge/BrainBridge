@@ -55,7 +55,7 @@ class Time:
                 raise ValueError("Precision must be 1, 2, 3, or 4.")
 
             self._start_time = perf_counter()
-            self._precision = precision
+            self._precision: Literal[1,2,3,4] = precision
 
         @property
         def precision(self) -> Literal[1, 2, 3, 4]:

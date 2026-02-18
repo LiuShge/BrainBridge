@@ -42,9 +42,9 @@ def return_path_of_dir_under_root_dir(dir_name: str) -> str:
     _base_path = str(_unparse_path[:_src_index])
     if dir_name not in listdir(_base_path):
         raise ValueError(
-            f"Cannot find \"{dir_name}\" under root directory: \"BrainBridge\", found: {listdir(_base_path)}.")
+            f"Cannot find \"{dir_name}\" under root directory, found: {listdir(_base_path)}.")
     if not path.isdir(path.join(_base_path, dir_name)):
-        raise ValueError(f"{dir_name} under dir-\"BrainBridge\" is not a directory.")
+        raise ValueError(f"{dir_name} under root dir is not a directory.")
     return path.join(_base_path, dir_name)
 
 def return_dir_member(dir_path: str) -> Union[Dict[str, Literal['file', 'dir']], None]:
@@ -199,7 +199,7 @@ def _auto_file_code(file_path: str) -> str:
     >>> os.remove(tmp_file_path)
     """
     with open(file_path, 'rb') as f:
-        return detect(f.read())['encoding']
+        return str(detect(f.read())['encoding'])
 
 def write_content_tofile(file_path: str, content:str, file_code: Literal['utf-8', 'auto'] = 'utf-8', trailing_newline: bool = True, override: bool = False) -> None:
     """

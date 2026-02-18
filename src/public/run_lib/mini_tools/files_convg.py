@@ -3,6 +3,7 @@
 Created by: Gemini 2.5 flash;
             GPT 5.2;
             Mistral Large 3 675B;
+-The author is powerless
 
 This module provides functionalities to create and restore backups of directory trees.
 Backup files are UTF-8 encoded and support both text and binary files via Base64 encoding.

@@ -4,7 +4,7 @@ from typing import List, Dict, Literal, Optional, Union, Mapping, MutableMapping
 from time import localtime
 import io
 
-FILE_PATH = "BrainBridge/main/net/request/request_core.py"
+FILE_PATH = __file__
 
 FileContent = Union[
         bytes,

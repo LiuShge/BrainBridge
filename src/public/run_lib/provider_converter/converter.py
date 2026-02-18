@@ -73,7 +73,7 @@ class _ConfigEngine:
         True
         """
         sys_path = path.join(return_path_of_dir_under_root_dir("config"), "sys_conf", "base_arg_match.json")
-        sys_cfg = read_json(sys_path) if path.exists(sys_path) else {}
+        sys_cfg = read_json(sys_path, parse=True) if path.exists(sys_path) else {}
         standard_args = sys_cfg["based_args"] if "based_args" in sys_cfg.keys() \
             else ["messages", "model", "stream", "max_tokens", "usage"]
         if base_match.get("based_args") != standard_args:

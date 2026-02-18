@@ -5,10 +5,8 @@ import random
 import io
 from dataclasses import dataclass, field
 from typing import (
-    Any, BinaryIO, Dict, IO, Iterable, Mapping,
-    MutableMapping, Optional, Tuple, Union, Literal, List
+    Any, BinaryIO, IO, Iterable, Mapping, Optional, Tuple, Union, Literal, List
 )
-from requests.models import Response
 
 # ==========================================
 # Type Definitions
