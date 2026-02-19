@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import threading
-import random
 import io
 from dataclasses import dataclass, field
 from typing import (
@@ -143,67 +142,3 @@ class RequestPool:
 # ==========================================
 # Simulation & Test Execution
 # ==========================================
-
-class MockRequest:
-    """
-    Mocking the Request class for demonstration purposes.
-    """
-
-    def get(self, *urls, **kwargs):
-        return f"Response from {urls[0]} (Mock)"
-
-    def request_sse(self, method, url, **kwargs):
-        def sse_generator():
-            yield {"data": f"event 1 for {url}"}
-            yield {"data": f"event 2 for {url}"}
-
-        return sse_generator()
-
-
-def run_test():
-    """
-    Main execution flow.
-    """
-    # 1. 初始化
-    mock_req = MockRequest()
-    pool = RequestPool(mock_req)
-
-    # 2. 准备数据
-    web_urls = [
-        "https://zhuanlan.zhihu.com/p/351369448",
-        "https://api.vectorengine.ai/console/token",
-        "https://github.com/winston779/",
-        "https://www.nintendo.com/jp/",
-        "https://huggingface.co/"
-    ]
-
-    # 3. 构造任务列表 (混合 GET 和 SSE)
-    tasks = []
-    for i, url in enumerate(web_urls):
-        task_id = str(random.randint(1000, 9999))
-        if i == 4:  # 最后一个设为 SSE 任务
-            tasks.append(RequestTask(task_id, "sse", kwargs={"method": "GET", "url": url}))
-        else:
-            tasks.append(RequestTask(task_id, "get", urls=(url,), kwargs={"timeout": 5}))
-
-    # 4. 并行执行
-    print(f"Starting {len(tasks)} tasks...")
-    results = pool.execute_all(tasks)
-
-    # 5. 处理结果
-    for res in results:
-        if res.success:
-            if isinstance(res.value, Iterable) and not isinstance(res.value, (str, bytes)):
-                # 处理 SSE 生成器
-                print(f"[Task {res.task_id}] SSE Stream Started:")
-                for event in res.value:
-                    print(f"   -> {event}")
-            else:
-                # 处理普通响应
-                print(f"[Task {res.task_id}] Success: {res.value}")
-        else:
-            print(f"[Task {res.task_id}] Failed: {res.error}")
-
-
-if __name__ == "__main__":
-    run_test()

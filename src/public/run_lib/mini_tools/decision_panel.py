@@ -151,8 +151,8 @@ class DecisionPanelPage:
         :param refresh_interval: Main loop sleep interval.
         :return: None
         Example:
-        >>> page = DecisionPanelPage(operation_tips="Use arrows/WASD.", enter_key={"decision": "Enter"})
-        >>> isinstance(page, DecisionPanelPage)
+        >>> _page = DecisionPanelPage(operation_tips="Use arrows/WASD.", enter_key={"decision": "Enter"})
+        >>> isinstance(_page, DecisionPanelPage)
         True
         """
         self._theme = theme or PanelTheme()
@@ -173,6 +173,7 @@ class DecisionPanelPage:
         self._key_pynput: Dict[ActionName, keyboard.Key | keyboard.KeyCode | None] = {}
         self._key_display: Dict[ActionName, str] = {}
         for action in ("back", "continue", "decision"):
+            action: Literal["back", "continue", "decision"]
             key_name = merged.get(action)
             if key_name is None:
                 self._key_pynput[action] = None
@@ -192,8 +193,8 @@ class DecisionPanelPage:
         :param options: Iterable of option items.
         :return: None
         Example:
-        >>> page = DecisionPanelPage()
-        >>> page.set_options([{"prompt": "A", "output": "1"}])
+        >>> _page = DecisionPanelPage()
+        >>> _page.set_options([{"prompt": "A", "output": "1"}])
         """
         self._options = list(options)
         self._selected_index = 0
@@ -205,8 +206,8 @@ class DecisionPanelPage:
         :param operation_tips: Tips string.
         :return: None
         Example:
-        >>> page = DecisionPanelPage()
-        >>> page.set_tips("tips")
+        >>> _page = DecisionPanelPage()
+        >>> _page.set_tips("tips")
         """
         self._operation_tips = operation_tips
 
@@ -216,8 +217,8 @@ class DecisionPanelPage:
 
         :return: Selected output, or None.
         Example:
-        >>> page = DecisionPanelPage()
-        >>> page.set_options([{"prompt": "A", "output": "1"}])
+        >>> _page = DecisionPanelPage()
+        >>> _page.set_options([{"prompt": "A", "output": "1"}])
         >>> # page.run_once()  # interactive
         """
         if not self._options:
@@ -244,8 +245,8 @@ class DecisionPanelPage:
 
         :return: None
         Example:
-        >>> page = DecisionPanelPage(clear_mode="none")
-        >>> page._clear()
+        >>> _page = DecisionPanelPage(clear_mode="none")
+        >>> _page._clear()
         """
         if self._clear_mode == "none":
             return
@@ -254,13 +255,14 @@ class DecisionPanelPage:
             return
         os.system("cls" if os.name == "nt" else "clear")
 
-    def _term_size(self) -> tuple[int, int]:
+    @staticmethod
+    def _term_size() -> tuple[int, int]:
         """
         Get terminal size.
 
         :return: (columns, rows)
         Example:
-        >>> cols, rows = DecisionPanelPage()._term_size()
+        >>> cols, rows = DecisionPanelPage._term_size()
         >>> isinstance(cols, int) and isinstance(rows, int)
         True
         """
@@ -274,8 +276,8 @@ class DecisionPanelPage:
         :param key: Pressed key.
         :return: False to stop listener, True to keep listening.
         Example:
-        >>> page = DecisionPanelPage()
-        >>> page.set_options([{"prompt": "A", "output": "1"}])
+        >>> _page = DecisionPanelPage()
+        >>> _page.set_options([{"prompt": "A", "output": "1"}])
         >>> isinstance(page._on_press(keyboard.Key.up), bool)
         True
         """
@@ -316,12 +318,12 @@ class DecisionPanelPage:
 
         :return: None
         Example:
-        >>> page = DecisionPanelPage(clear_mode="none")
-        >>> page.set_options([{"prompt": "A", "output": "1"}])
-        >>> page._draw()
+        >>> _page = DecisionPanelPage(clear_mode="none")
+        >>> _page.set_options([{"prompt": "A", "output": "1"}])
+        >>> _page._draw()
         """
         self._clear()
-        cols, rows = self._term_size()
+        cols, rows = DecisionPanelPage._term_size()
         t = self._theme
 
         width = min(cols, max(t.width_min, cols))

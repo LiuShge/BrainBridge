@@ -144,7 +144,7 @@ def return_full_tree(*base_paths: str) -> Dict[str, List[Union[str, Dict[str, An
         try:
             # Entry contains both name and path, plus cached is_dir/is_file status
             # Sorting entries by name to maintain consistent output
-            entries = sorted(scandir(current_dir), key=lambda e: e.name)
+            entries = sorted(scandir(current_dir), key=lambda _e: _e.name)
 
             for entry in entries:
                 raw_path = entry.path
@@ -226,7 +226,7 @@ def write_content_tofile(file_path: str, content:str, file_code: Literal['utf-8'
     """
     try:
         valid_path(file_path)
-    except (FileNotFoundError, ValueError) as e:
+    except (FileNotFoundError, ValueError) as _e:
         if override:
             with open(file_path,"w") as f: f.close()
         else:

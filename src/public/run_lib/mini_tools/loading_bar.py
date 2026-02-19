@@ -49,7 +49,7 @@ def display_loading_bar(
 
     for i in range(total_steps + 1):
         cursor = i * chunk_size
-
+        frame = ''
         if method == "replace":
             fill_len = min(cursor, size)
             frame = content_pool[:fill_len] + bg_pool[fill_len:]

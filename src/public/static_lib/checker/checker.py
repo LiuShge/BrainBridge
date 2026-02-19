@@ -119,7 +119,7 @@ class CheckTools:
                 for byte_block in iter(lambda: f.read(4096), b""):
                     sha256_hash.update(byte_block)
             return sha256_hash.hexdigest()
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             raise
 
     @staticmethod
@@ -168,8 +168,8 @@ class CheckTools:
         :return: The content of the file as a string.
         Example:
         >>> # Assuming 'config.json' exists
-        >>> content = CheckTools._copy_file("config.json")
-        >>> print(type(content))
+        >>> _content = CheckTools._copy_file("config.json")
+        >>> print(type(_content))
         <class 'str'>
         """
         try:
@@ -199,8 +199,7 @@ class CheckTools:
         try:
             valid_path(fix_file_path)
         except (ValueError, OSError):
-            with open(fix_file_path, 'w', encoding='utf-8') as f:
-                pass
+            with open(fix_file_path, 'w', encoding='utf-8') as f: f.close()
 
         valid_path(backup_path, is_file=False)
         fix_file_name = path.basename(fix_file_path)

@@ -94,6 +94,7 @@ class _Logger:
         except (TypeError, ValueError) as e:
             raise ValueError(f"Serialization failed: {e}") from e
 
+    # noinspection PyTypedDict
     @staticmethod
     def _dict_log_builder(time: Optional[Time],
                           level: Optional[LogLevels],
@@ -133,6 +134,7 @@ class _Logger:
         _slots: List[Literal["First", "Second", "Third", "Fourth"]] = ["First", "Second", "Third", "Fourth"]
 
         for _slot in _slots:
+            _slot: str
             part = log_format.get(_slot)
             if not part:
                 continue
