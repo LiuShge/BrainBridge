@@ -199,7 +199,8 @@ def _auto_file_code(file_path: str) -> str:
     >>> os.remove(tmp_file_path)
     """
     with open(file_path, 'rb') as f:
-        return str(detect(f.read())['encoding'])
+        detected = detect(f.read()).get('encoding')
+        return detected or 'utf-8'
 
 def write_content_tofile(file_path: str, content:str, file_code: Literal['utf-8', 'auto'] = 'utf-8', trailing_newline: bool = True, override: bool = False) -> None:
     """

@@ -1,206 +1,131 @@
-# 🧠 BrainBridge
+# BrainBridge
 
-<div align="center">
+BrainBridge is a small Python toolkit for direct, local use inside this repository.
+It focuses on a few concrete jobs:
 
-![Python Version](https://img.shields.io/badge/python-3.12%2B-blue.svg?style=flat-square&logo=python&logoColor=white)
-![Type Safety](https://img.shields.io/badge/type%20safety-100%25%20Stubbed-success.svg?style=flat-square)
-![Architecture](https://img.shields.io/badge/architecture-Self--Contained-purple.svg?style=flat-square)
-![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)
+- bootstrapping import paths from the repository root or from a package-local module
+- converting generic request arguments into provider-specific payloads
+- sending HTTP requests and parsing SSE streams with `requests`
+- running a simple threaded request pool
+- showing a terminal decision panel and a loading bar
+- reading, writing, checking, and packaging files
 
-**A High-Precision, Self-Contained LLM Runtime Protocol.**
+English | [中文版本](./README.zh-CN.md) | [Instruction Manual](./instruction.md) | [中文使用说明](./instruction.zh-CN.md)
 
-*Designed for developers who demand absolute control over their AI infrastructure.*
+## What this repo contains
 
-[Philosophy](#-design-philosophy) • [Architecture](#-system-architecture) • [Features](#-core-capabilities) • [Usage](#-usage-examples) • [Origin](#-the-origin)
+The repository is split into two runtime layers:
 
-</div>
+- `src/public/run_lib` contains the runtime helpers that are used while the program is running.
+- `src/public/static_lib` contains the supporting helpers for logging, integrity checks, and metadata.
+- `src/bootstrap_paths.py` and `src/bootstrap_source_dir.py` are the path bootstrap helpers.
+- `config/` holds runtime configuration and provider mapping files.
+- `storage/` is for generated output only.
 
----
+This project is not a framework or a package manager. It is a set of modules that are meant to be imported directly from the repository checkout.
 
-## 📖 Introduction
+## Quick start
 
-**BrainBridge** is not a typical Python library; it is a **portable runtime environment** designed to bridge the gap between complex Backend Logic and User-Facing Applications in the LLM era.
+1. Activate the bundled virtual environment.
 
-Unlike massive frameworks that abstract away execution details, BrainBridge offers a **transparent, white-box approach**. It rejects the "Dependency Hell" of modern Python development by implementing a custom import system, a hand-crafted threading engine, and a configuration-driven adaptation layer.
+   - PowerShell: `.\.venv\Scripts\Activate.ps1`
+   - Unix shell: `source .venv/Scripts/activate`
 
-Whether you are building a private AI agent, a CLI tool, or a specialized data pipeline, BrainBridge provides the skeleton to build robust, linear, and type-safe applications without the bloat.
+2. Install the dependencies.
 
----
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## 💎 Design Philosophy
+3. Smoke test the bootstrap logic.
 
-### 1. Atomic Modularity & Transparency
-Instead of monolithic logic, BrainBridge is built on **Atomic Modules**. Each component (Logger, Timer, Request Core) is designed to do one thing perfectly with zero hidden side effects. The code is kept linear and readable, allowing for instant debugging and "surgical" modifications.
+   ```bash
+   python src/bootstrap_paths.py
+   python src/.test/test_2.py
+   ```
 
-### 2. The "Async Defense" Strategy
-We consciously chose **Threaded Blocking I/O** over `asyncio`.
-* **Reasoning:** Asynchronous code introduces "Function Coloring" (viral complexity) that fragments business logic.
-* **Solution:** By using a highly optimized `RequestPool` (Threading), we achieve high concurrency (sufficient for LLM I/O) while keeping the codebase **linear, predictable, and easy to maintain**.
+4. If you need the interactive terminal UI, make sure `pynput` is available in the environment.
 
-### 3. Static Contracts in a Dynamic World
-BrainBridge utilizes extensive runtime magic (dynamic path injection, config loading), but it enforces strict development discipline via **Type Stubs (`.pyi`)**.
-* Every dynamic module is mirrored by a static stub.
-* This ensures that while the runtime is flexible, your IDE provides **100% accurate type hinting and autocompletion**, catching errors before execution.
+## Import pattern
 
-### 4. Environment Autonomy
-BrainBridge is designed to be **"Green Software"**. It does not rely on global `site-packages` for its core logic. It carries its own runtime environment, meaning you can clone the folder to any machine with Python, and it just works—no installation required.
-
----
-
-## 🏗 System Architecture
-
-The project structure is strictly divided into **Dynamic Logic (`run_lib`)** and **Static Infrastructure (`static_lib`)**.
-
-```text
-BrainBridge/
-├── src/
-│ ├── public/
-│ │ ├── run_lib/ # [The Engine]
-│ │ │ ├── requests_core/ # Advanced HTTP Client (Threaded, SSE, Retry)
-│ │ │ ├── provider_converter/ # LLM Argument Normalization Middleware
-│ │ │ └── mini_tools/ # Atomic utilities (TUI, Timer, FileConvg)
-│ │ └── static_lib/ # [The Foundation]
-│ │   ├── checker/ # Self-Healing Integrity & Version Control
-│ │   ├── logger/ # Zero-dependency Structured Logging
-│ │   └── information/ # Dual-layer Configuration (Sys/User)
-│ └── stubs/ # [The Contract] Hand-written Type Definitions
-└── main.py # Entry point with Environment Injection
-```
-
----
-
-## ⚡ Core Capabilities
-
-### 🌐 Intelligent Network Layer
-* **Native SSE Support:** Hand-crafted stream parser for Server-Sent Events, essential for LLM streaming responses (e.g., ChatGPT style typing effect).
-* **Threaded Request Pool:** Capable of dispatching parallel requests without the complexity of `async/await`.
-* **Detailed Lifecycle Logging:** Every request is tracked, timed, and logged for full observability.
-
-### 🧠 Universal Provider Converter
-* **Config-Driven Adapter:** Maps generic arguments (e.g., `messages`, `model`) to provider-specific payloads (OpenAI, Anthropic, DeepSeek) using `escape_table.json`.
-* **Type Guarding:** Automatically validates input types against the provider's schema before the request is even sent.
-
-### 🖥️ Native Terminal UI (TUI)
-* **Decision Panel:** A keyboard-interactive (WASD/Arrow keys) menu system implemented without heavy external UI libraries.
-* **Loading Bars:** Customizable, high-precision progress indicators.
-
-### 📦 File Convergence Protocol (`.bb`)
-* **Context Packing:** Aggregates complex directory trees into a single Base64-encoded stream.
-* **Use Case:** Perfect for feeding an entire codebase into an LLM context window for analysis.
-
----
-
-## 💻 Usage Examples
-
-### 1. The Core Loop: LLM Interaction
-This example demonstrates how to convert arguments, send a request, and handle the response log.
+When you run code from the repository root, use the root bootstrap helpers first.
 
 ```python
-# Inject internal paths first
-from src.set_source_dir import _set_source_dir
+from src.bootstrap_source_dir import _set_source_dir, _restore_sys_path
+from src.bootstrap_paths import change_sys_path, restore_sys_path
+
 _set_source_dir()
+change_sys_path(to_runlib=True)
 
-from src.public.run_lib.requests_core.request_core import Request
-from src.public.run_lib.provider_converter.converter import Converter
+from provider_converter.converter import Converter
+from requests_core.request_core import Request
 
-# 1. Normalize Arguments for OpenAI
-# This validates types and maps keys based on 'escape_table.json'
-try:
-  llm_payload = Converter(
-    provider="openai",
-    model="gpt-4-turbo",
-    messages=[{"role": "user", "content": "Explain Quantum Mechanics."}],
-    stream=True
-    ).information
-except ValueError as e:
-  print(f"Config Error: {e}")
-exit(1)
-
-# 2. Initialize Network Engine
-req = Request(enable_logging=True, timeout=30)
-
-# 3. Execute SSE Stream Request
-print("Receiving Stream:")
-url = "https://api.openai.com/v1/chat/completions"
-# Headers would typically include Authorization
-headers = {"Authorization": "Bearer sk-..."}
-
-for event in req.request_sse(method="POST", url=url, json=llm_payload, headers=headers):
-  # 'event' is a parsed dictionary: {'id':..., 'event':..., 'data':...}
-  print(event.get('data'), end="", flush=True)
-
-# 4. Check Logs
-print(f"\nTotal Logs: {len(req)}")
+restore_sys_path()
+_restore_sys_path()
 ```
 
-### 2. Interactive Terminal Menu
-Build robust CLI tools with the built-in Decision Panel.
+If you execute a file directly from inside `src/public/...`, use that subpackage's local `bootstrap_source_dir.py` mirror.
 
-```python
-from src.public.run_lib.mini_tools.decision_panel import DecisionPanelPage
+## Core modules
 
-# Initialize the TUI Page
-menu = DecisionPanelPage(
-  title="BrainBridge Control Center",
-  prompt_text="Select Deployment Mode",
-  operation_tips="[W/S] Navigate [Enter] Confirm"
-  )
+| Module | What it does |
+| --- | --- |
+| `src/bootstrap_paths.py` | Finds `run_lib` and `static_lib`, then adds one of them to `sys.path`. |
+| `src/bootstrap_source_dir.py` | Adds the repository `src` directory to `sys.path` and restores it later. |
+| `src/public/run_lib/files_manager/manager.py` | File and directory helpers: `valid_path`, `read_file`, `read_json`, `write_content_tofile`, `return_full_tree`. |
+| `src/public/run_lib/requests_core/request_core.py` | `Request` wrapper around `requests` with `get`, `post`, `put`, `delete`, and SSE support. |
+| `src/public/run_lib/requests_core/thread_requests/thread_requests.py` | Threaded request pool: `RequestTask`, `TaskResult`, `RequestWorker`, `RequestPool`. |
+| `src/public/run_lib/provider_converter/converter.py` | `Converter` for provider payload mapping and `Operator` helpers for headers and response parsing. |
+| `src/public/run_lib/mini_tools/timer.py` | `Time` and `Time.Timer` for elapsed time and time formatting. |
+| `src/public/run_lib/mini_tools/loading_bar.py` | Console loading bar helper. |
+| `src/public/run_lib/mini_tools/decision_panel.py` | Interactive terminal menu built with `pynput`. |
+| `src/public/run_lib/mini_tools/files_convg.py` | Backup packing and unpacking helpers for directory trees. |
+| `src/public/static_lib/checker/checker.py` | Dependency, version, file hash, and backup recovery helpers. |
+| `src/public/static_lib/logger/log_core.py` | Structured logging helpers and the `Logger` class. |
+| `src/public/static_lib/information/information.py` | Prints the JSON files under `src/public/static_lib/information/config`. |
 
-# Define Options
-menu.set_options([
-  {"prompt": "🚀 Production Mode", "output": "prod"},
-  {"prompt": "🛠️ Debug Mode", "output": "debug"},
-  {"prompt": "📂 Safe Mode (No Network)", "output": "safe"}
-  ])
+## Configuration
 
-# Run the Event Loop
-selected_mode = menu.run_once()
-print(f"System starting in: {selected_mode}")
+The provider converter reads two layers of configuration:
+
+- `config/sys_conf/base_arg_match.json`
+- `config/sys_conf/escape_table.json`
+- `config/user_conf/base_arg_match.json`
+- `config/user_conf/escape_table.json`
+
+User configuration overrides the system defaults when keys overlap.
+
+The information module also reads:
+
+- `src/public/static_lib/information/config/project_information.json`
+- `src/public/static_lib/information/config/py_env_information.json`
+
+## Practical notes
+
+- `Request.request_sse()` returns parsed event dictionaries with `id`, `event`, and `data`.
+- The current SSE parser only yields events that contain data.
+- `Converter` accepts only provider profiles that exist in the merged config.
+- `DecisionPanelPage` and the related terminal UI helpers need `pynput`.
+- `CheckTools.check_py_version()` currently targets Python `3.14.0`, even though the repo itself is developed and smoke-tested on Python `3.12+`.
+- `write_content_tofile(..., file_code="auto")` now falls back to UTF-8 on empty files.
+- `storage/` should stay free of source files unless you intentionally want generated output there.
+
+## Recommended checks
+
+Run these after changing the runtime helpers or the import bootstrap files:
+
+```bash
+python src/bootstrap_paths.py
+python src/.test/test_2.py
+python src/public/static_lib/logger/log_core.py
 ```
 
-### 3. Codebase Snapshot (Packing)
-Pack a project into a single token-efficient string for LLM analysis.
+If you touched the file tree or backup helpers, also run:
 
-```python
-from src.public.run_lib.mini_tools.files_convg import aggregate_to_backup
-
-# Define the tree to pack
-target_tree = {
-  "./src": ["./src/main.py", "./src/utils.py"]
-  }
-
-# Generate snapshot
-aggregate_to_backup(target_tree, output_backup_path="./snapshots/v1.bb")
-print("Backup complete. Hash verified.")
+```bash
+python src/.test/test_1.py
 ```
 
----
+## License
 
-## 👨‍💻 The Origin
-
-**BrainBridge** is an experiment in **High-Efficiency Engineering**.
-
-It was architected and implemented in a **4-day sprint** by a **14-year-old developer** in collaboration with AI.
-
-The goal was not to build "just another wrapper," but to prove that with a clear architectural vision (Atomic Design, Static Contracts) and modern AI assistance, one can build a professional-grade, self-contained runtime that rivals complex commercial frameworks in stability and control.
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License**.
-*Use it, fork it, study it. Just keep it clean.*
-
-
-## ☕ Support the Project
-
-As a **14-year-old student developer**, maintaining and testing this framework requires significant API usage and infrastructure costs. If **BrainBridge** has provided value to your workflow, or if you wish to support the research into high-efficiency LLM runtimes, any form of sponsorship would be greatly appreciated.
-
-Your support helps cover API tokens, server costs, and enables the continued development of this "Atomic" ecosystem.
-
-- **Check [FundDevelopers/](./FundDevelopers/)** for sponsorship details and QR codes.
-- **For domestic developers (China)**: Support the student architect directly via Alipay/WeChat.
-
-*Every star and every coffee counts. Thank you for empowering the next generation of developers.* 🚀
-
-`Developers in China, if you have a significant interest in this project, you can sponsor the developer... As a student, he has very limited funds to invest in development...`
+This project is distributed under the MIT License.

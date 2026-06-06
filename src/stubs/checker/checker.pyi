@@ -4,11 +4,11 @@ import importlib.util
 import hashlib
 from os import path
 
-# 声明来自 set_source_dir 的外部函数（需要用户确保其在实际代码中存在）
+# 声明来自 bootstrap_source_dir 的外部函数（需要用户确保其在实际代码中存在）
 def _set_source_dir() -> None: ...
 def _restore_sys_path() -> None: ...
 
-# 声明来自 simple_import 的外部函数
+# 声明来自 bootstrap_paths 的外部函数
 def change_sys_path(to_runlib: bool) -> None: ...
 
 # 声明来自 files_manager.manager 的外部函数（* 对应 from files_manager.manager import *）

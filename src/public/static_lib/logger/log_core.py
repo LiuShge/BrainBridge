@@ -1,8 +1,6 @@
-from set_source_dir import _set_source_dir,_restore_sys_path
-from sys import path as sys_path
+from bootstrap_source_dir import _set_source_dir,_restore_sys_path
 _set_source_dir()
-print(sys_path)
-from simple_import import change_sys_path, restore_sys_path
+from bootstrap_paths import change_sys_path, restore_sys_path
 
 change_sys_path(to_runlib=True)
 from mini_tools.timer import Time

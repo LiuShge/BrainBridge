@@ -1,4 +1,4 @@
-from simple_import import change_sys_path
+from bootstrap_paths import change_sys_path
 change_sys_path(to_runlib=True)
 
 from requests_core.request_core import Request

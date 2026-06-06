@@ -4,10 +4,10 @@ import importlib.util
 import hashlib
 from os import path
 
-from set_source_dir import _set_source_dir, _restore_sys_path
+from bootstrap_source_dir import _set_source_dir, _restore_sys_path
 
 _set_source_dir()
-from simple_import import change_sys_path
+from bootstrap_paths import change_sys_path
 
 change_sys_path(to_runlib=True)
 from files_manager.manager import write_content_tofile,read_file,valid_path,return_full_tree,return_path_of_dir_under_root_dir

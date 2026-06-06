@@ -1,29 +1,41 @@
+# BrainBridge Developer Notes / BrainBridge 开发者说明
 
-# Repository Guidelines
+This file is for human developers and future maintainers. Keep it direct, practical, and aligned with the current tree.
 
-## Project Structure & Module Organization
-- The repo is rooted in `src/` (core logic), `config/` (runtime, sys, user conf folders), and `storage/` (generated logs and program metadata), with helper scripts (`simple_import.py`, `launcher.py`, `_launcher.py`, `_reset.py`) at the root.
-- `src/` splits into `public/run_lib` (service helpers such as `requests_core` and `provider_converter`), `public/static_lib`, GUI stubs under `GUI/`, and a manual sandbox under `.tests/`. Use `simple_import.py` when you need to resolve those run/static libraries before importing other subpackages.
-- Keep future modules in `src/` and `src/public`; mirror the current naming so `snake_case` folders map to Python modules and duplicate interfaces live in `run_lib`/`static_lib` when shared across runtimes.
+## English
 
-## Build, Test, and Development Commands
-- Activate the bundled virtual environment first (`.\.venv\Scripts\Activate.ps1` on PowerShell, `source .venv/Scripts/activate` on Unix). Then work from the repository root to keep relative imports stable.
-- Run `python simple_import.py` to confirm the dynamic loader finds `run_lib` and `static_lib` before spinning up more complex scripts. This script demonstrates the expected `requests_core` import path.
-- Sprint through the minimal sandbox test with `python src/.tests/sandbox/test.py`; it only prints its own path but verifies the interpreter can traverse the hidden `.tests` tree. There is currently no automated build step beyond these lightweight invocations.
+- The runtime modules live under `src/public/run_lib` and `src/public/static_lib`.
+- Use `src/bootstrap_source_dir.py` to add `src` to `sys.path`.
+- Use `src/bootstrap_paths.py` to add either `run_lib` or `static_lib` to `sys.path`.
+- Some subpackages keep a local copy of `bootstrap_source_dir.py` so direct execution inside that package still works.
+- Do not reintroduce `simple_import.py` or `set_source_dir.py`; those are legacy names.
+- Keep changes small and focused. Prefer local fixes, path/bootstrap updates, or doc updates over broad restructuring.
+- The current smoke tests are:
+  - `python src/bootstrap_paths.py`
+  - `python src/.test/test_2.py`
+  - `python src/.test/test_1.py` when file-tree helpers change
+  - `python src/public/static_lib/logger/log_core.py` when logging changes
+- `src/.test/test_5.py` depends on `pynput`; do not treat it as a universal smoke test.
+- `config/sys_conf` is the default layer. `config/user_conf` overrides it.
+- `storage/` is runtime output. Do not commit generated files from there unless they are intentional fixtures.
+- Before changing a public API, read the relevant source file and update both README files and both instruction manuals.
+- Keep repository guidance factual. Avoid marketing language.
 
-## Coding Style & Naming Conventions
-- Follow Python idioms: four-space indentation, ASCII-safe identifiers, docstrings on public helpers, and `snake_case` for functions/modules alongside `PascalCase` for classes. Keep constants UPPERCASE in shared configs.
-- Mirror the small examples already committed (see `simple_import.py`) for spacing, inline error handling, and logging-style comments. Avoid magic numbers; document expectations when a directory name, such as `src/public/run_lib`, is required.
-- No additional formatter is configured yet; run `python -m py_compile ...` or your linting tool of choice before merging, but keep changes short and focused.
+## 中文
 
-## Testing Guidelines
-- Tests live under `src/.tests/`. Give new files a `test_*.py` name, add them alongside the sandbox directory if they exercise GUI bits, and keep assertions simple while you expand tooling.
-- Use the sandbox stub (`python src/.tests/sandbox/test.py`) as a template to make sure imports resolve before adding heavier suites or dependencies. There is no coverage tooling yet, so document any manual verification meant to accompany a change.
-
-## Commit & Pull Request Guidelines
-- The repository currently lacks version history, so adopt a transparent commit narrative: single-topic changes, imperative summaries, and (once Git is enabled) a `type(scope): summary` pattern helps future contributors.
-- Every PR should explain the change, list the smoke-test commands (`python simple_import.py`, relevant sandbox test), and mention any environmental configuration touched in `config/*`. Include screenshots only if the UI surface in `src/GUI/` changes.
-
-## Configuration & Environment Notes
-- Store editable runtime bits under `config/runtime_conf`, system defaults under `config/sys_conf`, and user overrides under `config/user_conf`. Do not commit secrets into these directories; treat them as live configuration vaults.
-- `storage/` is purely runtime output—log files, telemetry, and crafted program information. Clean it before packaging or exposing the repository to a public channel.
+- 真实的运行时代码位于 `src/public/run_lib` 和 `src/public/static_lib`。
+- 使用 `src/bootstrap_source_dir.py` 把 `src` 加入 `sys.path`。
+- 使用 `src/bootstrap_paths.py` 把 `run_lib` 或 `static_lib` 加入 `sys.path`。
+- 某些子包保留了本地版 `bootstrap_source_dir.py`，这样在子包内直接执行也能工作。
+- 不要再把 `simple_import.py` 或 `set_source_dir.py` 加回来；它们已经是旧名字。
+- 改动尽量小而集中。优先做局部修补、路径引导更新或文档更新，不要轻易重构目录结构。
+- 当前可用的烟雾测试：
+  - `python src/bootstrap_paths.py`
+  - `python src/.test/test_2.py`
+  - 文件树工具变更时跑 `python src/.test/test_1.py`
+  - 日志模块变更时跑 `python src/public/static_lib/logger/log_core.py`
+- `src/.test/test_5.py` 依赖 `pynput`，不能把它当成通用烟雾测试。
+- `config/sys_conf` 是默认层，`config/user_conf` 会覆盖它。
+- `storage/` 只是运行时输出，不要把生成文件当源码提交，除非它们是刻意保留的 fixture。
+- 在修改公共 API 之前，先读对应源码，并同步更新两份 README 和两份 instruction 文档。
+- 仓库说明要保持事实和实用，不要写宣传语。

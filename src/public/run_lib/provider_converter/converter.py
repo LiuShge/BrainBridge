@@ -3,12 +3,12 @@ from __future__ import annotations
 from os import path
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
 if __name__ == "__main__":
-    from set_source_dir import _set_source_dir,_restore_sys_path
+    from bootstrap_source_dir import _set_source_dir,_restore_sys_path
 else:
-    from .set_source_dir import _set_source_dir,_restore_sys_path
-_set_source_dir()   # let simple_import can be import
+    from .bootstrap_source_dir import _set_source_dir,_restore_sys_path
+_set_source_dir()   # let bootstrap_paths can be import
 
-from simple_import import change_sys_path, restore_sys_path
+from bootstrap_paths import change_sys_path, restore_sys_path
 change_sys_path(to_runlib=True) # let libs under run_lib can be import
 from files_manager.manager import *
 
@@ -212,7 +212,7 @@ class Converter:
             type_names = [t.strip() for t in str_type.split("|")]
             valid_types = [Converter._TYPE_MAPPING[n] for n in type_names if n in Converter._TYPE_MAPPING]
             if "none" in type_names: valid_types.append(type(None))
-            return isinstance(_object, tuple(valid_types)) if valid_types else True
+            return isinstance(_object, tuple(valid_types)) if valid_types else False
 
         if isinstance(str_type, dict): return isinstance(_object, dict)
         return isinstance(_object, type(_object))

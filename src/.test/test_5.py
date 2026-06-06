@@ -4,9 +4,9 @@ from typing import Optional, List, Dict, Literal, Union
 import os
 import time
 from pynput import keyboard
-from set_source_dir import _set_source_dir, _restore_sys_path
+from bootstrap_source_dir import _set_source_dir, _restore_sys_path
 _set_source_dir()
-from simple_import import change_sys_path
+from bootstrap_paths import change_sys_path
 change_sys_path(to_runlib=True)
 from mini_tools.timer import Time
 _restore_sys_path()

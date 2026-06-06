@@ -2,12 +2,12 @@ import os
 from typing import Dict, Any
 from sys import path as sys_path
 
-# 1. 尝试导入 simple_import 模块（这是我们调整 sys.path 的入口点）
+# 1. 尝试导入 bootstrap_paths 模块（这是我们调整 sys.path 的入口点）
 try:
-    import simple_import
+    import bootstrap_paths
 except ImportError:
-    print("FATAL: set_source_dir.py not found or accessible.")
-    # 如果找不到 simple_import，通常说明当前工作目录不对。
+    print("FATAL: bootstrap_paths.py not found or accessible.")
+    # 如果找不到 bootstrap_paths，通常说明当前工作目录不对。
     # 在实际测试中，你需要确保当前执行位置能让它被找到。
     exit(1)
 
@@ -19,7 +19,7 @@ try:
     print("--- Testing run_lib import (provider_converter) ---")
 
     # 动态设置环境，让 converter 模块可见
-    simple_import.change_sys_path(to_runlib=True)
+    bootstrap_paths.change_sys_path(to_runlib=True)
 
     # 现在可以尝试导入深度依赖的模块
     from provider_converter.converter import Converter
@@ -42,13 +42,13 @@ try:
     print("\n--- Testing static_lib import (logger) ---")
 
     # 动态设置环境，让 log_core 模块可见 (注意：这会覆盖上一次的 path 修改)
-    simple_import.change_sys_path(to_staticlib=True)
+    bootstrap_paths.change_sys_path(to_staticlib=True)
 
     from logger.log_core import Logger, LogLevels
 
     try:
         # 实例化 Logger 检查
-        test_logger = Logger(level=LogLevels.INFO, text="Import Test Success via simple_import")
+        test_logger = Logger(level=LogLevels.INFO, text="Import Test Success via bootstrap_paths")
         print(f"Logger class found: {test_logger.__class__.__name__}")
 
         # 打印一个日志（因为没有文件管理器，我们只打印到控制台）
@@ -61,7 +61,7 @@ try:
 
 finally:
     # 3. 清理环境 (无论成功还是失败，都恢复 sys.path)
-    simple_import.restore_sys_path()
+    bootstrap_paths.restore_sys_path()
 
     # 验证是否恢复成功
     if sys_path == initial_sys_path:
