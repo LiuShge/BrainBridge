@@ -44,7 +44,7 @@ class CheckTools:
     @staticmethod
     def check_py_version() -> Optional[str]:
         """
-        Checks the current Python version against the required version (3.14.0).
+        Checks the current Python version against the recommended baseline (3.12.0).
         Major version mismatch is treated as fatal; minor/micro range issues are warnings.
 
         :return: None if version is acceptable, or the result of decision_making.

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from os import path
 from typing import Dict, Literal, Union, List, Tuple, Optional
 from sys import path as sys_path
@@ -16,97 +17,25 @@ def packages_path() -> Dict[Literal['run_lib', 'static_lib'], str]:
     {'run_lib': 'C:\\Users\\Serge\\Desktop\\BrainBridge\\src\\public\\run_lib', 'static_lib': 'C:\\Users\\Serge\\Desktop\\BrainBridge\\src\\public\\static_lib'}
     """
 
-    def _find_path(_base_path: Union[List[str], Tuple[str]]) -> dict[str, str]:
-        """
-        Recursively searches for 'run_lib' and 'static_lib' directories using BFS strategy.
+    current_file = Path(__file__).resolve()
+    for parent in current_file.parents:
+        if parent.name == "src":
+            project_root = parent.parent
+            run_lib = project_root / "src" / "public" / "run_lib"
+            static_lib = project_root / "src" / "public" / "static_lib"
+            if not run_lib.is_dir() or not static_lib.is_dir():
+                missing = []
+                if not run_lib.is_dir():
+                    missing.append("run_lib")
+                if not static_lib.is_dir():
+                    missing.append("static_lib")
+                raise ValueError(f"Failed to find directories: {', '.join(missing)}")
+            return {
+                "run_lib": str(run_lib),
+                "static_lib": str(static_lib),
+            }
 
-        Features:
-        - Breadth-First Search (BFS) with depth control to avoid infinite recursion.
-        - Early termination when both directories are found.
-        - Skips directories with permission issues.
-        - Ensures absolute paths for returned results.
-
-        Args:
-            _base_path: A list or tuple of base directory paths to start the search.
-
-        Returns:
-            Dict[str, str]: A dictionary with keys 'run_lib' and 'static_lib' mapping to their absolute paths.
-
-        Raises:
-            ValueError: If either 'run_lib' or 'static_lib' is not found within the search depth limit.
-            FileNotFoundError: If any base path in `_base_path` does not exist.
-
-        Example:
-            >>> _find_path(["/project/src"])
-            {'run_lib': '/project/src/public/run_lib', 'static_lib': '/project/src/public/static_lib'}
-        """
-        return_dict = {"run_lib": "", "static_lib": ""}
-        search_queue = list(_base_path)  # Use a queue for BFS
-        visited_dirs = set()  # Track visited directories to avoid cycles
-        complexity = 0
-
-        while search_queue and complexity <= 8:
-            next_level_queue = []
-            for current_path in search_queue:
-                # Validate path existence and type
-                try:
-                    if not os.path.isdir(current_path):
-                        raise FileNotFoundError(f"Directory not found: {current_path}")
-                    if current_path in visited_dirs:
-                        continue
-                    visited_dirs.add(current_path)
-                except (PermissionError, OSError) as _e:
-                    continue  # Skip inaccessible directories
-
-                # Check items in the current directory
-                try:
-                    items = os.listdir(current_path)
-                except (PermissionError, OSError):
-                    continue
-
-                for item in items:
-                    item_path = os.path.join(current_path, item)
-                    if not os.path.isdir(item_path):
-                        continue  # Skip files
-
-                    # Check for target directories
-                    if "run_lib" in item and not return_dict["run_lib"]:
-                        return_dict["run_lib"] = os.path.abspath(item_path)
-                    elif "static_lib" in item and not return_dict["static_lib"]:
-                        return_dict["static_lib"] = os.path.abspath(item_path)
-                    else:
-                        next_level_queue.append(item_path)  # Add subdirectory to queue
-
-            search_queue = next_level_queue  # Move to next level
-            complexity += 1
-
-            # Early exit if both targets are found
-            if all(return_dict.values()):
-                break
-
-        # Validate results
-        if not all(return_dict.values()):
-            missing = [k for k, v in return_dict.items() if not v]
-            raise ValueError(f"Failed to find directories: {', '.join(missing)} within search depth limit.")
-
-        return return_dict
-
-    # --- Main Logic ---
-    file_path = path.dirname(path.abspath(__file__))  # Get absolute path of current file
-    path_index = file_path.find("src")
-
-    if path_index == -1:
-        raise ValueError(f"Unexpected file path: {file_path}. Expected to contain 'src'.")
-
-    base_path = path.join(file_path[:path_index])  # Project root (one level above 'src')
-    try:
-        found_paths = _find_path([str(base_path)])
-        return {
-            "run_lib": found_paths["run_lib"],
-            "static_lib": found_paths["static_lib"]
-        }
-    except Exception as e:
-        raise ValueError(f"Path resolution failed: {str(e)}") from e
+    raise ValueError(f"Unexpected file path: {current_file}. Expected to contain a 'src' directory.")
 
 _INITIAL_SYS_PATH: Optional[List[str]] = None
 

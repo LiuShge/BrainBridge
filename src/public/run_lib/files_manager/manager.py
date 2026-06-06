@@ -1,3 +1,4 @@
+from pathlib import Path
 from os import path, listdir, scandir
 from typing import Dict, Literal, List, Union, Any, Set
 from json import loads, JSONDecodeError
@@ -34,18 +35,19 @@ def return_path_of_dir_under_root_dir(dir_name: str) -> str:
     ...         __file__ = original_file # Restore original __file__
     True
     """
-    _unparse_path = path.dirname(__file__)
-    _src_index = _unparse_path.find("src")
-    if _src_index == -1:
-        raise ValueError(
-            f"Unexpected file path: {_unparse_path}. Expected to contain 'src', try to put this file under dir-\"src\"")
-    _base_path = str(_unparse_path[:_src_index])
-    if dir_name not in listdir(_base_path):
-        raise ValueError(
-            f"Cannot find \"{dir_name}\" under root directory, found: {listdir(_base_path)}.")
-    if not path.isdir(path.join(_base_path, dir_name)):
-        raise ValueError(f"{dir_name} under root dir is not a directory.")
-    return path.join(_base_path, dir_name)
+    current_file = Path(__file__).resolve()
+    for parent in current_file.parents:
+        if parent.name == "src":
+            root_dir = parent.parent
+            target_dir = root_dir / dir_name
+            if not target_dir.exists():
+                raise ValueError(f'Cannot find "{dir_name}" under root directory.')
+            if not target_dir.is_dir():
+                raise ValueError(f"{dir_name} under root dir is not a directory.")
+            return str(target_dir)
+
+    raise ValueError(
+        f"Unexpected file path: {current_file}. Expected to contain a 'src' directory.")
 
 def return_dir_member(dir_path: str) -> Union[Dict[str, Literal['file', 'dir']], None]:
     """

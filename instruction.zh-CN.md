@@ -36,7 +36,6 @@ python src/.test/test_2.py
 
 当前依赖包括：
 
-- `requests`
 - `chardet`
 - `pynput`
 
@@ -145,14 +144,14 @@ restore_sys_path()
 
 它的作用：
 
-- 用一个对象封装 `requests`
+- 用一个对象封装标准库 `urllib`
 - 支持单 URL 和批量 URL
 - 在 `enable_logging=True` 时记录简单日志
 - 解析 SSE 流
 
 需要注意：
 
-- 单个 URL 时返回 `requests.Response`
+- 单个 URL 时返回一个兼容 `Response` 对象，支持 `status_code`、`content`、`text`、`json()` 和 `raise_for_status()`
 - 多个 URL 时返回以 URL 字符串为键的字典
 - `request_sse()` 会返回包含 `id`、`event`、`data` 的事件字典
 - 当前 SSE 解析器只会产出带 `data` 的事件
@@ -317,11 +316,23 @@ restore_sys_path()
 - `root_prefix_id(root)`
 - `relative_under_root(root, file_path)`
 - `b64_encode_stream(src, wrap=B64_WRAP)`
-- `aggregate_to_backup(tree, output_backup_path, progress_callback=None)`
+- `build_compact_file_tree(tree)`
+- `has_file_tree_header(backup_file_path)`
+- `read_file_tree_header(backup_file_path, validate=False)`
+- `inject_file_tree_header(backup_file_path, tree, validate=True)`
+- `aggregate_to_backup(tree, output_backup_path, progress_callback=None, include_file_tree_header=False, validate_file_tree_header=True)`
 - `unpack_from_backup(backup_file_path, target_extraction_dir, skip_errors=False, progress_callback=None)`
 
 这个模块用于把目录树打包成文本备份，或者再解包回来。
-它是流式文本格式，不是 zip 的替代品。
+它是流式 `.bb` 文本格式，不是 zip 的替代品。
+
+行为：
+
+- 当前 `.bb` 格式使用 JSON 元数据行，不再依赖脆弱的空格拆分头，所以路径里有空格也能稳定处理。
+- `aggregate_to_backup(..., include_file_tree_header=True)` 会把简略文件树头嵌入到备份顶部，方便快速查看。
+- `has_file_tree_header()` 只判断这个头是否存在。
+- `read_file_tree_header(..., validate=True)` 会校验树头与备份中的文件记录是否一致。
+- `inject_file_tree_header()` 可以给已有 `.bb` 文件添加或替换顶部树头。
 
 示例：
 
@@ -336,7 +347,7 @@ from files_manager.manager import return_full_tree
 from mini_tools.files_convg import aggregate_to_backup, unpack_from_backup
 
 tree = return_full_tree("src/public")
-aggregate_to_backup(tree, "storage/backup.bb")
+aggregate_to_backup(tree, "storage/backup.bb", include_file_tree_header=True)
 unpack_from_backup("storage/backup.bb", "storage/restored")
 
 restore_sys_path()
@@ -363,7 +374,7 @@ restore_sys_path()
 
 注意：
 
-- `check_py_version()` 当前检查的是 Python `3.14.0`
+- `check_py_version()` 当前检查的是 Python `3.12.0`
 - 仓库本身是在 Python `3.12+` 环境下开发和烟雾测试的，所以这个检查应当当作内部警告，不要当成打包规则
 
 ### 4.12 `src/public/static_lib/logger/log_core.py`
@@ -463,7 +474,7 @@ change_sys_path(to_staticlib=True)
 
 from checker.checker import CheckTools
 
-CheckTools.dependency_check(["requests", "chardet"])
+CheckTools.dependency_check(["chardet"])
 CheckTools.check_file_hash("config/sys_conf/base_arg_match.json", "expected_sha256_here")
 
 restore_sys_path()
@@ -493,7 +504,7 @@ _restore_sys_path()
 
 ### `check_py_version()` 对当前解释器报提示
 
-这个方法当前目标版本是 Python `3.14.0`。
+这个方法当前目标版本是 Python `3.12.0`。
 仓库本身的日常烟雾测试仍然在 Python `3.12+` 上进行。
 
 ### `write_content_tofile(..., file_code="auto")` 作用在新空文件上

@@ -36,7 +36,6 @@ python src/.test/test_2.py
 
 The repository currently lists:
 
-- `requests`
 - `chardet`
 - `pynput`
 
@@ -145,14 +144,14 @@ Supported methods:
 
 What it does:
 
-- Wraps `requests` with a single object.
+- Wraps standard-library `urllib` with a single object.
 - Supports one URL or a batch of URLs.
 - Stores simple request logs when `enable_logging=True`.
 - Parses SSE streams into event dictionaries.
 
 Important behavior:
 
-- For a single URL, the method returns a `requests.Response`.
+- For a single URL, the method returns a compatibility `Response` object with `status_code`, `content`, `text`, `json()`, and `raise_for_status()`.
 - For multiple URLs, the method returns a dictionary keyed by URL string.
 - `request_sse()` yields dictionaries with `id`, `event`, and `data`.
 - The current SSE parser only yields events that contain data.
@@ -318,11 +317,23 @@ Public API:
 - `root_prefix_id(root)`
 - `relative_under_root(root, file_path)`
 - `b64_encode_stream(src, wrap=B64_WRAP)`
-- `aggregate_to_backup(tree, output_backup_path, progress_callback=None)`
+- `build_compact_file_tree(tree)`
+- `has_file_tree_header(backup_file_path)`
+- `read_file_tree_header(backup_file_path, validate=False)`
+- `inject_file_tree_header(backup_file_path, tree, validate=True)`
+- `aggregate_to_backup(tree, output_backup_path, progress_callback=None, include_file_tree_header=False, validate_file_tree_header=True)`
 - `unpack_from_backup(backup_file_path, target_extraction_dir, skip_errors=False, progress_callback=None)`
 
 Use this module when you want to pack a directory tree into a text backup file or restore it later.
-It is a streaming text format, not a ZIP replacement.
+It is a streaming `.bb` text format, not a ZIP replacement.
+
+Behavior:
+
+- The current `.bb` format uses JSON metadata lines instead of space-split headers, so paths with spaces are handled safely.
+- `aggregate_to_backup(..., include_file_tree_header=True)` embeds a compact tree header at the top of the backup for quick inspection.
+- `has_file_tree_header()` only checks for the presence of that header.
+- `read_file_tree_header(..., validate=True)` verifies that the embedded tree header matches the file records stored in the backup.
+- `inject_file_tree_header()` can add or replace the top-level tree header in an existing `.bb` file.
 
 Example:
 
@@ -337,7 +348,7 @@ from files_manager.manager import return_full_tree
 from mini_tools.files_convg import aggregate_to_backup, unpack_from_backup
 
 tree = return_full_tree("src/public")
-aggregate_to_backup(tree, "storage/backup.bb")
+aggregate_to_backup(tree, "storage/backup.bb", include_file_tree_header=True)
 unpack_from_backup("storage/backup.bb", "storage/restored")
 
 restore_sys_path()
@@ -364,7 +375,7 @@ Use this module for basic environment checks, file integrity checks, and backup-
 
 Important note:
 
-- `check_py_version()` currently checks against Python `3.14.0`.
+- `check_py_version()` currently checks against Python `3.12.0`.
 - The repository itself is developed and smoke-tested on Python `3.12+`, so treat the version check as an internal guard rather than a packaging rule.
 
 ### 4.12 `src/public/static_lib/logger/log_core.py`
@@ -464,7 +475,7 @@ change_sys_path(to_staticlib=True)
 
 from checker.checker import CheckTools
 
-CheckTools.dependency_check(["requests", "chardet"])
+CheckTools.dependency_check(["chardet"])
 CheckTools.check_file_hash("config/sys_conf/base_arg_match.json", "expected_sha256_here")
 
 restore_sys_path()
@@ -494,7 +505,7 @@ The terminal UI and `src/.test/test_5.py` need it.
 
 ### `check_py_version()` warns on your interpreter
 
-That method currently targets Python `3.14.0`.
+That method currently targets Python `3.12.0`.
 The repository badge and day-to-day smoke tests still use `3.12+`.
 
 ### `write_content_tofile(..., file_code="auto")` on a new empty file

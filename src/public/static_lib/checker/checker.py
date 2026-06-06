@@ -51,7 +51,7 @@ class CheckTools:
     @staticmethod
     def check_py_version() -> Optional[str]:
         """
-        Checks the current Python version against the required version (3.14.0).
+        Checks the current Python version against the recommended baseline (3.12.0).
         Major version mismatch is treated as fatal; minor/micro range issues are warnings.
 
         :return: None if version is acceptable, or the result of decision_making.
@@ -60,7 +60,7 @@ class CheckTools:
         >>> # result = CheckTools.check_py_version()
         """
         python_v = sys.version_info
-        py_v_need = (3, 14, 0, 'final', 0)
+        py_v_need = (3, 12, 0, 'final', 0)
 
         if python_v.major != py_v_need[0]:
             return CheckTools.decision_making(
@@ -69,7 +69,7 @@ class CheckTools:
             )
 
         is_out_of_range = (
-                python_v.minor not in range(py_v_need[1] - 2, py_v_need[1] + 9) or
+                python_v.minor not in range(py_v_need[1], py_v_need[1] + 3) or
                 python_v.micro not in range(0, py_v_need[2] + 9)
         )
 

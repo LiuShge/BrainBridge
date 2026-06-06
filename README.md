@@ -5,7 +5,7 @@ It focuses on a few concrete jobs:
 
 - bootstrapping import paths from the repository root or from a package-local module
 - converting generic request arguments into provider-specific payloads
-- sending HTTP requests and parsing SSE streams with `requests`
+- sending HTTP requests and parsing SSE streams with standard-library `urllib`
 - running a simple threaded request pool
 - showing a terminal decision panel and a loading bar
 - reading, writing, checking, and packaging files
@@ -73,13 +73,13 @@ If you execute a file directly from inside `src/public/...`, use that subpackage
 | `src/bootstrap_paths.py` | Finds `run_lib` and `static_lib`, then adds one of them to `sys.path`. |
 | `src/bootstrap_source_dir.py` | Adds the repository `src` directory to `sys.path` and restores it later. |
 | `src/public/run_lib/files_manager/manager.py` | File and directory helpers: `valid_path`, `read_file`, `read_json`, `write_content_tofile`, `return_full_tree`. |
-| `src/public/run_lib/requests_core/request_core.py` | `Request` wrapper around `requests` with `get`, `post`, `put`, `delete`, and SSE support. |
+| `src/public/run_lib/requests_core/request_core.py` | `Request` wrapper around standard-library `urllib` with `get`, `post`, `put`, `delete`, and SSE support. |
 | `src/public/run_lib/requests_core/thread_requests/thread_requests.py` | Threaded request pool: `RequestTask`, `TaskResult`, `RequestWorker`, `RequestPool`. |
 | `src/public/run_lib/provider_converter/converter.py` | `Converter` for provider payload mapping and `Operator` helpers for headers and response parsing. |
 | `src/public/run_lib/mini_tools/timer.py` | `Time` and `Time.Timer` for elapsed time and time formatting. |
 | `src/public/run_lib/mini_tools/loading_bar.py` | Console loading bar helper. |
 | `src/public/run_lib/mini_tools/decision_panel.py` | Interactive terminal menu built with `pynput`. |
-| `src/public/run_lib/mini_tools/files_convg.py` | Backup packing and unpacking helpers for directory trees. |
+| `src/public/run_lib/mini_tools/files_convg.py` | `.bb` backup packing and unpacking helpers, with optional embedded file-tree headers. |
 | `src/public/static_lib/checker/checker.py` | Dependency, version, file hash, and backup recovery helpers. |
 | `src/public/static_lib/logger/log_core.py` | Structured logging helpers and the `Logger` class. |
 | `src/public/static_lib/information/information.py` | Prints the JSON files under `src/public/static_lib/information/config`. |
@@ -106,7 +106,7 @@ The information module also reads:
 - The current SSE parser only yields events that contain data.
 - `Converter` accepts only provider profiles that exist in the merged config.
 - `DecisionPanelPage` and the related terminal UI helpers need `pynput`.
-- `CheckTools.check_py_version()` currently targets Python `3.14.0`, even though the repo itself is developed and smoke-tested on Python `3.12+`.
+- `CheckTools.check_py_version()` targets Python `3.12.0` as the recommended baseline, while the repo itself is developed and smoke-tested on Python `3.12+`.
 - `write_content_tofile(..., file_code="auto")` now falls back to UTF-8 on empty files.
 - `storage/` should stay free of source files unless you intentionally want generated output there.
 

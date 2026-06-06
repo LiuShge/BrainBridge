@@ -1,4 +1,4 @@
-from os import path
+from pathlib import Path
 from sys import path as sys_path
 from typing import Optional, List
 
@@ -11,14 +11,15 @@ def _set_source_dir():
         _RAW_SYS_PATH = sys_path.copy()
 
     def _find_src() -> str:
-        _file_path = path.dirname(__file__)
-        _source_index = _file_path.find("src")
-        if _source_index == -1:
-            raise RuntimeError(f"Unexpected file path: {_file_path}. Expected to contain 'src'.")
-        _source_path = path.join(str(_file_path[:_source_index]),"src")
-        return _source_path
+        current_file = Path(__file__).resolve()
+        for parent in current_file.parents:
+            if parent.name == "src":
+                return str(parent)
+        raise RuntimeError(f"Unexpected file path: {current_file}. Expected to contain a 'src' directory.")
 
-    sys_path.append(_find_src())
+    source_path = _find_src()
+    if source_path not in sys_path:
+        sys_path.append(source_path)
 
 def _restore_sys_path():
 
