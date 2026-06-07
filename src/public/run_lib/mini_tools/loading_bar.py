@@ -74,3 +74,7 @@ def display_loading_bar(
             _timer.sleep(interval)
 
     print()
+
+if __name__ == "__main__":
+    timer = Time()
+    display_loading_bar(timer, "=", ">", ".", duration=3, size=30, chunk_size=2, method="replace", speed="high")

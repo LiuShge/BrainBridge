@@ -70,7 +70,7 @@ logger = Logger(level=LogLevels.INFO, text="ready")
 ## Notes
 
 - Runtime dependencies are now standard-library only.
-- The old bootstrap files still exist in the tree, but new code should not depend on them.
+- The old bootstrap helpers have been removed from the active source tree.
 - `DecisionPanelPage` no longer requires `pynput`; it uses the built-in raw terminal backend.
 - `write_content_tofile(..., file_code="auto")` and related readers now rely on the in-repo detector.
 - `.bb` archives can optionally embed a compact file-tree header for quick inspection and validation.

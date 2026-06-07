@@ -16,7 +16,7 @@ from src.public.run_lib.provider_converter.converter import Converter
 from src.public.static_lib.logger.log_core import Logger
 ```
 
-The old bootstrap files remain in the repository only as legacy leftovers. New code should not depend on them.
+The old bootstrap helpers have been removed from the active source tree.
 
 ## 2. Runtime layout
 

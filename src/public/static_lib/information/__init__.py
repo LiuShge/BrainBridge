@@ -1,3 +1,3 @@
 """Information package for BrainBridge."""
 
-__all__ = ["bootstrap_source_dir", "information"]
+__all__ = ["information"]

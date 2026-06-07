@@ -16,7 +16,7 @@ from src.public.run_lib.provider_converter.converter import Converter
 from src.public.static_lib.logger.log_core import Logger
 ```
 
-仓库里的旧 bootstrap 文件只作为遗留文件保留，新代码不要再依赖它们。
+仓库里的旧 bootstrap 辅助文件已经从现行源码树中移除。
 
 ## 2. 运行时结构
 

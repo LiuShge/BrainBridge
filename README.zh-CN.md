@@ -69,7 +69,7 @@ logger = Logger(level=LogLevels.INFO, text="ready")
 ## 说明
 
 - 运行时依赖现在只使用标准库。
-- 旧的 bootstrap 文件仍然保留在仓库里，但新代码不应再依赖它们。
+- 旧的 bootstrap 辅助文件已经从现行源码树中移除。
 - `DecisionPanelPage` 不再需要 `pynput`，现在使用内置 raw 终端输入后端。
 - `write_content_tofile(..., file_code="auto")` 等接口现在使用仓库内的编码检测器。
 - `.bb` 归档可以选择性嵌入紧凑文件树头，方便快速检查与校验。

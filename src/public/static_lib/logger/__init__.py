@@ -1,3 +1,3 @@
 """Logging package for BrainBridge."""
 
-__all__ = ["bootstrap_source_dir", "log_core"]
+__all__ = ["log_core"]

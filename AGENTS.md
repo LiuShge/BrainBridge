@@ -7,7 +7,7 @@ Keep this file practical and aligned with the current tree.
 - Runtime modules live under `src/public/run_lib` and `src/public/static_lib`.
 - Install the repo with `python3 -m pip install -e .` before running local smoke tests.
 - New code should import from `src.public...` directly. Do not add new `sys.path` bootstrap dependencies.
-- The old bootstrap helper files are legacy leftovers. Do not build new features around them.
+- The old bootstrap helper files have been removed from the active source tree.
 - Do not reintroduce `requests`, `chardet`, or `pynput` as core runtime dependencies.
 - `src/public/run_lib/terminial_core` is the terminal input backend. Keep the directory name as-is.
 - `config/sys_conf` is the default layer. `config/user_conf` overrides it.
@@ -26,7 +26,7 @@ Keep this file practical and aligned with the current tree.
 - 运行时代码位于 `src/public/run_lib` 和 `src/public/static_lib`。
 - 本地验证前先执行 `python3 -m pip install -e .`。
 - 新代码直接从 `src.public...` 导入，不要再新增 `sys.path` 引导依赖。
-- 旧的 bootstrap 文件只是遗留兼容物，不要围绕它们继续开发新功能。
+- 旧的 bootstrap 辅助文件已经从现行源码树中移除。
 - 不要把 `requests`、`chardet`、`pynput` 重新引回核心运行时依赖。
 - `src/public/run_lib/terminial_core` 是终端输入后端，目录名保持现状即可。
 - `config/sys_conf` 是默认层，`config/user_conf` 会覆盖它。
