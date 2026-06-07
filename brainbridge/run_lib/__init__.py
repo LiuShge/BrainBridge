@@ -5,5 +5,5 @@ __all__ = [
     "mini_tools",
     "provider_converter",
     "requests_core",
-    "terminial_core",
+    "terminal_core",
 ]

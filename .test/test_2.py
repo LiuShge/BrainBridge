@@ -1,8 +1,8 @@
 import os
 
-from src.public.run_lib.provider_converter.converter import Converter
-from src.public.run_lib.requests_core.request_core import Request
-from src.public.static_lib.logger.log_core import Logger, LogLevels
+from brainbridge.run_lib.provider_converter.converter import Converter
+from brainbridge.run_lib.requests_core.request_core import Request
+from brainbridge.static_lib.logger.log_core import Logger, LogLevels
 
 print("--- Testing editable-install style imports ---")
 print(f"Working directory: {os.getcwd()}")

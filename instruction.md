@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-BrainBridge is now used as a normal editable-installed package:
+BrainBridge is used as a normal editable-installed package:
 
 ```bash
 python3 -m pip install -e .
@@ -11,23 +11,24 @@ python3 -m pip install -e .
 The active import style is package-based:
 
 ```python
-from src.public.run_lib.requests_core.request_core import Request
-from src.public.run_lib.provider_converter.converter import Converter
-from src.public.static_lib.logger.log_core import Logger
+from brainbridge.run_lib.requests_core.request_core import Request
+from brainbridge.run_lib.provider_converter.converter import Converter
+from brainbridge.static_lib.logger.log_core import Logger
 ```
 
 The old bootstrap helpers have been removed from the active source tree.
 
 ## 2. Runtime layout
 
-- `src/public/run_lib/files_manager`: file and path helpers
-- `src/public/run_lib/mini_tools`: small runtime helpers
-- `src/public/run_lib/terminial_core`: built-in terminal raw-input backend
-- `src/public/run_lib/provider_converter`: provider config and payload conversion
-- `src/public/run_lib/requests_core`: request engine and threaded request helpers
-- `src/public/static_lib/logger`: structured logging
-- `src/public/static_lib/checker`: runtime checks and backup recovery helpers
-- `src/public/static_lib/information`: prints bundled JSON metadata
+- `brainbridge/run_lib/files_manager`: file and path helpers
+- `brainbridge/run_lib/mini_tools`: small runtime helpers
+- `brainbridge/run_lib/terminal_core`: built-in terminal raw-input backend
+- `brainbridge/run_lib/provider_converter`: provider config and payload conversion
+- `brainbridge/run_lib/requests_core`: request engine and threaded request helpers
+- `brainbridge/static_lib/logger`: structured logging
+- `brainbridge/static_lib/checker`: runtime checks and backup recovery helpers
+- `brainbridge/static_lib/information`: prints bundled JSON metadata
+- `.test`: smoke tests and sandbox fixtures
 
 ## 3. Dependency policy
 
@@ -42,15 +43,15 @@ Removed third-party runtime dependencies:
 Replacements:
 
 - HTTP is handled by `urllib`
-- encoding detection is handled by `src.public.run_lib.mini_tools.chardet.detect`
-- terminal key listening is handled by `src.public.run_lib.terminial_core.keyboard`
+- encoding detection is handled by `brainbridge.run_lib.mini_tools.chardet.detect`
+- terminal key listening is handled by `brainbridge.run_lib.terminal_core.keyboard`
 
 ## 4. Common import examples
 
 ### 4.1 Files
 
 ```python
-from src.public.run_lib.files_manager.manager import (
+from brainbridge.run_lib.files_manager.manager import (
     read_file,
     read_json,
     return_full_tree,
@@ -62,7 +63,7 @@ from src.public.run_lib.files_manager.manager import (
 ### 4.2 Requests
 
 ```python
-from src.public.run_lib.requests_core.request_core import Request
+from brainbridge.run_lib.requests_core.request_core import Request
 
 requester = Request(timeout=30)
 response = requester.get("https://example.com")
@@ -73,8 +74,8 @@ print(response.text)
 ### 4.3 Threaded requests
 
 ```python
-from src.public.run_lib.requests_core.request_core import Request
-from src.public.run_lib.requests_core.thread_requests.thread_requests import RequestPool, RequestTask
+from brainbridge.run_lib.requests_core.request_core import Request
+from brainbridge.run_lib.requests_core.thread_requests.thread_requests import RequestPool, RequestTask
 
 requester = Request(timeout=30)
 pool = RequestPool(requester)
@@ -88,7 +89,7 @@ results = pool.execute_all(tasks)
 ### 4.4 Provider conversion
 
 ```python
-from src.public.run_lib.provider_converter.converter import Converter, Operator
+from brainbridge.run_lib.provider_converter.converter import Converter, Operator
 
 payload = Converter(
     "openai_completion",
@@ -98,12 +99,18 @@ payload = Converter(
 ).information
 
 headers = Operator.HeadersBuilder.builder("token")
+parsed = Operator.ResponseUnwrap.unwrap("openai_completion", {"choices": []})
 ```
+
+Notes:
+
+- `stream` is only included when you pass it explicitly.
+- Prefer `Operator.ResponseUnwrap.unwrap(...)`; `ResponseUnwarp` and `unwarp()` remain compatibility aliases.
 
 ### 4.5 Logging
 
 ```python
-from src.public.static_lib.logger.log_core import Logger, LogLevels
+from brainbridge.static_lib.logger.log_core import Logger, LogLevels
 
 logger = Logger(level=LogLevels.INFO, text="hello")
 print(logger.text_log_builder())
@@ -112,7 +119,7 @@ print(logger.text_log_builder())
 ### 4.6 Terminal interaction
 
 ```python
-from src.public.run_lib.mini_tools.decision_panel import DecisionPanelPage
+from brainbridge.run_lib.mini_tools.decision_panel import DecisionPanelPage
 
 page = DecisionPanelPage(operation_tips="Use arrow keys or WASD.")
 page.set_options([
@@ -122,7 +129,7 @@ page.set_options([
 result = page.run_once()
 ```
 
-`DecisionPanelPage` uses the raw terminal backend in `src.public.run_lib.terminial_core`.
+`DecisionPanelPage` uses the raw terminal backend in `brainbridge.run_lib.terminal_core`.
 Confirm uses `Enter` by default, and `Tab` is accepted as the same confirm action.
 The backend intentionally keeps a small `pynput`-like API surface for already-used behavior:
 
@@ -135,7 +142,7 @@ The backend intentionally keeps a small `pynput`-like API surface for already-us
 Main module:
 
 ```python
-from src.public.run_lib.mini_tools.files_convg import (
+from brainbridge.run_lib.mini_tools.files_convg import (
     aggregate_to_backup,
     has_file_tree_header,
     inject_file_tree_header,
@@ -146,10 +153,43 @@ from src.public.run_lib.mini_tools.files_convg import (
 
 Notes:
 
-- `.bb` now uses the `BBPACK/3` format.
+- `.bb` now uses the `BBPACK/3` format
 - file-tree headers are optional
 - headers can be injected later and validated
 - sandbox snapshots follow `base/` plus `YYYY-MM-DD/`
+
+### 5.1 Record-level format specification
+
+`.bb` files are UTF-8 text with one logical record per line:
+
+```text
+BBPACK/3
+META {"kind":"backup","version":3,"b64_wrap":76,"chunk_size":1048576}
+META {"kind":"root","root_id":"<sha16>","root_posix":"<root path>"}
+META {"kind":"tree_header","format":"compact-tree-v1","line_count":N,"sha256":"<digest>"}   # optional
+TREE_BEGIN
+TREE_DATA <base64-encoded JSON tree header>                                                    # optional
+TREE_END                                                                                        # optional
+FILE_BEGIN
+FILE_META {"root_id":"<sha16>","rel":"path/in/root","src_full_posix":"<source path>","encoding":"b64"}
+FILE_DATA <base64 payload chunk>
+FILE_CHECK {"size":123,"sha256":"<digest>"}
+FILE_END
+...
+BBPACK_END
+```
+
+- The leading `META {"kind":"backup",...}` line declares format version and Base64 chunking metadata.
+- Each `META {"kind":"root",...}` line maps a stable `root_id` to the original root path.
+- The optional tree-header block stores Base64-encoded JSON for the `compact-tree-v1` summary and is guarded by `line_count` plus `sha256`.
+- Each file record begins with `FILE_BEGIN`, carries one `FILE_META`, one or more `FILE_DATA` lines, then a `FILE_CHECK` and `FILE_END`.
+
+### 5.2 Validation and extraction rules
+
+- `FILE_DATA` always stores Base64 text, even for plain-text files.
+- Restore validates both `FILE_CHECK.size` and `FILE_CHECK.sha256`.
+- `rel` must stay relative to its declared root; absolute paths and `..` traversal are rejected.
+- If a tree header is present and validation is requested, its flattened file list must match the actual file records.
 
 ## 6. Configuration
 
@@ -168,17 +208,17 @@ Recommended validation flow:
 
 ```bash
 python3 -m pip install -e .
-python3 -m py_compile $(rg --files -g '*.py' src)
-python3 src/.test/test_2.py
-python3 src/.test/test_1.py
-python3 src/.test/test_7.py
-python3 src/.test/test_5.py
-python3 -m src.public.static_lib.logger.log_core
+python3 -m py_compile $(rg --files -g '*.py' .test brainbridge)
+python3 .test/test_2.py
+python3 .test/test_1.py
+python3 .test/test_7.py
+python3 .test/test_5.py
+python3 -m brainbridge.static_lib.logger.log_core
 ```
 
 ## 8. Practical notes
 
-- `src/.test/test_5.py` is now an internal decision-panel/backend smoke test, not a `pynput` check.
+- `.test/test_5.py` is the internal decision-panel/backend smoke test, not a `pynput` check.
 - `write_content_tofile(..., file_code="auto")` and `read_file(..., file_code="auto")` rely on the in-repo detector.
 - `storage/` is runtime output, not source.
 - Keep repository guidance factual and concise.

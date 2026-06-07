@@ -1,8 +1,8 @@
 import contextlib
 import io
 
-from src.public.run_lib.mini_tools.decision_panel import DecisionPanelPage
-from src.public.run_lib.terminial_core import keyboard
+from brainbridge.run_lib.mini_tools.decision_panel import DecisionPanelPage
+from brainbridge.run_lib.terminal_core import keyboard
 
 
 page = DecisionPanelPage(operation_tips="Use arrow keys or WASD.", clear_mode="none")

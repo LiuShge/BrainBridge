@@ -3,7 +3,7 @@ from __future__ import annotations
 from os import path
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
 
-from src.public.run_lib.files_manager.manager import read_json, return_path_of_dir_under_root_dir
+from brainbridge.run_lib.files_manager.manager import read_json, return_path_of_dir_under_root_dir
 
 __all__ = ["Converter", "Operator"]
 
@@ -289,7 +289,7 @@ class Operator:
 
     This class provides nested classes for specific operations:
     - HeadersBuilder: Constructs HTTP request headers.
-    - ResponseUnwarp: Parses and extracts data from provider responses.
+    - ResponseUnwrap: Parses and extracts data from provider responses.
     """
 
     class HeadersBuilder:
@@ -321,7 +321,7 @@ class Operator:
             if include_accept: header["Accept"] = "application/json"
             return header
 
-    class ResponseUnwarp:
+    class ResponseUnwrap:
         """
         Response parser for extracting data from various provider API response formats.
 
@@ -344,7 +344,7 @@ class Operator:
 
             Example:
             >>> _data = {"a": {"b": {"c": 42}}}
-            >>> result = Operator.ResponseUnwarp._get_nested_value(_data, "a/b/c")
+            >>> result = Operator.ResponseUnwrap._get_nested_value(_data, "a/b/c")
             >>> result
             42
             """
@@ -358,7 +358,7 @@ class Operator:
                     if not isinstance(target_list, list): return None
                     remaining_path = "/".join(parts[i + 1:])
                     if not remaining_path: return target_list
-                    results = [Operator.ResponseUnwarp._get_nested_value(item, remaining_path) for item in target_list]
+                    results = [Operator.ResponseUnwrap._get_nested_value(item, remaining_path) for item in target_list]
                     return [r for r in results if r is not None]
                 else:
                     if isinstance(current, dict):
@@ -379,7 +379,7 @@ class Operator:
 
             Example:
             >>> data = {"content": {"text": "Hello"}}
-            >>> result = Operator.ResponseUnwarp._deep_extract_text(data)
+            >>> result = Operator.ResponseUnwrap._deep_extract_text(data)
             >>> len(result) > 0
             True
             """
@@ -388,21 +388,21 @@ class Operator:
             if isinstance(obj, str):
                 if obj.strip(): texts.append(obj)
             elif isinstance(obj, list):
-                for item in obj: texts.extend(Operator.ResponseUnwarp._deep_extract_text(item, content_keys))
+                for item in obj: texts.extend(Operator.ResponseUnwrap._deep_extract_text(item, content_keys))
             elif isinstance(obj, dict):
                 for key in content_keys:
                     if key in obj:
                         val = obj[key]
                         if val is None: continue
                         if isinstance(val, dict):
-                            sub_keys = [k for k in val.keys() if k not in Operator.ResponseUnwarp._METADATA_FIELDS]
-                            texts.extend(Operator.ResponseUnwarp._deep_extract_text(val, sub_keys))
+                            sub_keys = [k for k in val.keys() if k not in Operator.ResponseUnwrap._METADATA_FIELDS]
+                            texts.extend(Operator.ResponseUnwrap._deep_extract_text(val, sub_keys))
                         else:
                             if str(val).strip(): texts.append(str(val))
             return texts
 
         @staticmethod
-        def unwarp(provider: str, response: Any) -> Dict[
+        def unwrap(provider: str, response: Any) -> Dict[
             Literal['response_text', 'response_usage', 'response_information', 'raw_response'], Any]:
             """
             Unwrap and parse provider response into standardized format.
@@ -421,7 +421,7 @@ class Operator:
 
             Example:
             >>> _response = {"choices": [{"message": {"content": "Hello"}}], "usage": {"total_tokens": 10}}
-            >>> _result = Operator.ResponseUnwarp.unwarp("openai", _response)
+            >>> _result = Operator.ResponseUnwrap.unwrap("openai", _response)
             >>> "response_text" in _result
             True
             """
@@ -438,13 +438,19 @@ class Operator:
             for arg_name in base_match.get("based_args", []):
                 path_formula = output_conf.get(arg_name)
                 if not path_formula: continue
-                extracted = Operator.ResponseUnwarp._get_nested_value(response, path_formula)
+                extracted = Operator.ResponseUnwrap._get_nested_value(response, path_formula)
 
                 if arg_name == "messages":
-                    text_list = Operator.ResponseUnwarp._deep_extract_text(extracted)
+                    text_list = Operator.ResponseUnwrap._deep_extract_text(extracted)
                     result["response_text"] = "\n".join(text_list) if text_list else None
                 elif arg_name == "usage":
                     result["response_usage"] = extracted if isinstance(extracted, dict) else {}
                 else:
                     result["response_information"][arg_name] = extracted
             return result
+
+        # Legacy compatibility alias.
+        unwarp = unwrap
+
+    # Legacy compatibility alias.
+    ResponseUnwarp = ResponseUnwrap

@@ -1,6 +1,6 @@
 from typing import Literal, Optional
 
-from src.public.run_lib.mini_tools.timer import Time
+from brainbridge.run_lib.mini_tools.timer import Time
 
 __all__ = ["display_loading_bar"]
 

@@ -3,8 +3,8 @@ from typing import TypedDict, Literal, List, Dict, Any, Optional, Union
 from enum import Enum
 from dataclasses import dataclass
 
-from src.public.run_lib.files_manager.manager import write_content_tofile
-from src.public.run_lib.mini_tools.timer import Time
+from brainbridge.run_lib.files_manager.manager import write_content_tofile
+from brainbridge.run_lib.mini_tools.timer import Time
 
 __all__ = ["LogLevels", "LogPart", "LogFormat", "LogInformation", "Logger"]
 

@@ -3,7 +3,7 @@ from os import path, listdir, scandir
 from typing import Dict, Literal, List, Union, Any, Set
 from json import loads, JSONDecodeError
 
-from src.public.run_lib.mini_tools.chardet import detect
+from brainbridge.run_lib.mini_tools.chardet import detect
 
 __all__ = [
     "return_path_of_dir_under_root_dir",
@@ -19,11 +19,11 @@ __all__ = [
 def return_path_of_dir_under_root_dir(dir_name: str) -> str:
     """
     Returns the absolute path of a specified directory located directly under the project's root directory.
-    The project root is determined by searching for the 'src' directory in the current file's path.
+    The project root is determined by walking upward until `pyproject.toml` is found.
 
     :param dir_name: The name of the directory to locate under the project root.
     :return: The absolute path of the specified directory.
-    :raises ValueError: If 'src' is not found in the current file's path,
+    :raises ValueError: If the repository root cannot be found,
                         if the specified `dir_name` is not found under the root,
                         or if `dir_name` is not a directory.
     Example:
@@ -47,18 +47,24 @@ def return_path_of_dir_under_root_dir(dir_name: str) -> str:
     True
     """
     current_file = Path(__file__).resolve()
-    for parent in current_file.parents:
-        if parent.name == "src":
-            root_dir = parent.parent
-            target_dir = root_dir / dir_name
-            if not target_dir.exists():
-                raise ValueError(f'Cannot find "{dir_name}" under root directory.')
-            if not target_dir.is_dir():
-                raise ValueError(f"{dir_name} under root dir is not a directory.")
-            return str(target_dir)
+    root_dir: Path | None = None
 
-    raise ValueError(
-        f"Unexpected file path: {current_file}. Expected to contain a 'src' directory.")
+    for parent in current_file.parents:
+        if (parent / "pyproject.toml").exists():
+            root_dir = parent
+            break
+
+    if root_dir is None:
+        raise ValueError(
+            f"Unexpected file path: {current_file}. Could not locate repository root via 'pyproject.toml'."
+        )
+
+    target_dir = root_dir / dir_name
+    if not target_dir.exists():
+        raise ValueError(f'Cannot find "{dir_name}" under root directory.')
+    if not target_dir.is_dir():
+        raise ValueError(f"{dir_name} under root dir is not a directory.")
+    return str(target_dir)
 
 def return_dir_member(dir_path: str) -> Union[Dict[str, Literal['file', 'dir']], None]:
     """

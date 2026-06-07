@@ -1,6 +1,6 @@
 from os import path, listdir
 
-from src.public.run_lib.files_manager.manager import read_json
+from brainbridge.run_lib.files_manager.manager import read_json
 
 __all__ = ["display"]
 

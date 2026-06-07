@@ -4,7 +4,7 @@ import importlib.util
 import hashlib
 from os import path
 
-from src.public.run_lib.files_manager.manager import (
+from brainbridge.run_lib.files_manager.manager import (
     read_file,
     return_full_tree,
     return_path_of_dir_under_root_dir,
@@ -191,7 +191,7 @@ class CheckTools:
         :raises FileNotFoundError: If no matching backup file is found.
 
         Example:
-        >>> CheckTools.fix_code_file("src/main.py")
+        >>> CheckTools.fix_code_file("brainbridge/static_lib/logger/log_core.py")
         """
         if backup_path is None:
             backup_path = path.join(return_path_of_dir_under_root_dir("storage"), "backup")
@@ -259,6 +259,6 @@ class CheckTools:
         :param backup_path: The exact path (including filename) in the backup location to write to.
         :return: None
         Example:
-        >>> # CheckTools.fix_backup_file("src/main.py", "storage/backup/main.py")
+        >>> # CheckTools.fix_backup_file("brainbridge/static_lib/logger/log_core.py", "storage/backup/log_core.py")
         """
         write_content_tofile(backup_path, CheckTools._copy_file(current_file), "auto", override=True)

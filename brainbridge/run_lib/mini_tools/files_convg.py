@@ -17,7 +17,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Dict, Iterable, Iterator, Mapping, Optional, Sequence, Tuple
 import logging
 
-from src.public.run_lib.files_manager.manager import valid_path
+from brainbridge.run_lib.files_manager.manager import valid_path
 
 logger = logging.getLogger(__name__)
 

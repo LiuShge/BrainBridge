@@ -7,7 +7,7 @@ import time
 import shutil
 import unicodedata
 
-from src.public.run_lib.terminial_core import keyboard
+from brainbridge.run_lib.terminal_core import keyboard
 
 __all__ = [
     "ActionName",

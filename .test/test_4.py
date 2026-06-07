@@ -1,13 +1,13 @@
 from json import loads
 
-from src.public.run_lib.provider_converter.converter import Converter, Operator
-from src.public.run_lib.requests_core.request_core import Request
+from brainbridge.run_lib.provider_converter.converter import Converter, Operator
+from brainbridge.run_lib.requests_core.request_core import Request
 
 
 def main() -> None:
     requester = Request(timeout=120)
     headers_builder = Operator.HeadersBuilder()
-    output_parser = Operator.ResponseUnwarp()
+    output_parser = Operator.ResponseUnwrap()
     history = []
 
     while True:
@@ -32,7 +32,7 @@ def main() -> None:
         for resp in response_stream:
             if resp["data"].replace("\n", "") == "[DONE]":
                 continue
-            output = output_parser.unwarp("openai_completion", loads(resp["data"]))
+            output = output_parser.unwrap("openai_completion", loads(resp["data"]))
             if not output["response_usage"]:
                 delta = output["raw_response"]["choices"][0]["delta"]
                 if "reasoning" in delta:
