@@ -94,6 +94,7 @@ payload = Converter(
     "openai_completion",
     model="openai/gpt-oss-20b",
     messages=[{"role": "user", "content": "hello"}],
+    stream=True,
 ).information
 
 headers = Operator.HeadersBuilder.builder("token")
@@ -122,6 +123,7 @@ result = page.run_once()
 ```
 
 `DecisionPanelPage` 现在使用 `src.public.run_lib.terminial_core` 里的 raw 终端后端。
+默认用 `Enter` 确认，`Tab` 也会按同样的确认动作处理。
 这个后端刻意保留了一小部分 `pynput` 风格接口，以兼容已经在用的行为：
 
 - `keyboard.Key`

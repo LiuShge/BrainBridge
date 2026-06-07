@@ -71,6 +71,8 @@ logger = Logger(level=LogLevels.INFO, text="ready")
 - 运行时依赖现在只使用标准库。
 - 旧的 bootstrap 辅助文件已经从现行源码树中移除。
 - `DecisionPanelPage` 不再需要 `pynput`，现在使用内置 raw 终端输入后端。
+- `Converter(...)` 只有在显式传入时才会带上 `stream`。
+- `DecisionPanelPage` 现在把 `Enter` 和 `Tab` 都视为确认键。
 - `write_content_tofile(..., file_code="auto")` 等接口现在使用仓库内的编码检测器。
 - `.bb` 归档可以选择性嵌入紧凑文件树头，方便快速检查与校验。
 

@@ -308,7 +308,7 @@ class DecisionPanelPage:
         elif key == keyboard.Key.down or key == keyboard.Key.right or is_char("s") or is_char("d"):
             self._selected_index = (self._selected_index + 1) % n
             moved = True
-        elif self._key_bindings.get("decision") is not None and key == self._key_bindings["decision"]:
+        elif self._is_confirm_key(key):
             self._result = self._options[self._selected_index]["output"]
             self._running = False
             return False
@@ -321,6 +321,13 @@ class DecisionPanelPage:
             self._draw()
 
         return True
+
+    def _is_confirm_key(self, key: keyboard.Key | keyboard.KeyCode) -> bool:
+        decision_key = self._key_bindings.get("decision")
+        continue_key = self._key_bindings.get("continue")
+        return (decision_key is not None and key == decision_key) or (
+            continue_key is not None and key == continue_key
+        )
 
     def _draw(self) -> None:
         """
@@ -336,12 +343,10 @@ class DecisionPanelPage:
         cols, rows = DecisionPanelPage._term_size()
         t = self._theme
 
-        width = min(cols, max(t.width_min, cols))
-        width = max(t.width_min, min(cols, width))
+        width = max(2, cols)
         inner_w = max(10, width - 2)
 
-        available_rows = max(t.height_min, rows)
-        available_rows = max(t.height_min, min(rows, available_rows))
+        available_rows = max(1, rows)
         header_rows = 1
         sep_rows = 1
         footer_rows = 3
@@ -378,8 +383,12 @@ class DecisionPanelPage:
         print(f"{t.border_sep_left}{t.border_h * inner_w}{t.border_sep_right}")
 
         decision_key = self._key_display.get("decision", "N/A")
+        continue_key = self._key_display.get("continue", "N/A")
         back_key = self._key_display.get("back", "N/A")
-        hint_1 = _pad_to_width(f"{self._prompt_text} (confirm: {decision_key})", inner_w)
+        confirm_keys = decision_key
+        if continue_key not in {"N/A", decision_key}:
+            confirm_keys = f"{decision_key}/{continue_key}"
+        hint_1 = _pad_to_width(f"{self._prompt_text} (confirm: {confirm_keys})", inner_w)
         hint_2 = _pad_to_width(f"back: {back_key}    {self._operation_tips}", inner_w)
 
         print(f"{t.border_v}{hint_1}{t.border_v}")

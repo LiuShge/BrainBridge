@@ -94,6 +94,7 @@ payload = Converter(
     "openai_completion",
     model="openai/gpt-oss-20b",
     messages=[{"role": "user", "content": "hello"}],
+    stream=True,
 ).information
 
 headers = Operator.HeadersBuilder.builder("token")
@@ -122,6 +123,7 @@ result = page.run_once()
 ```
 
 `DecisionPanelPage` uses the raw terminal backend in `src.public.run_lib.terminial_core`.
+Confirm uses `Enter` by default, and `Tab` is accepted as the same confirm action.
 The backend intentionally keeps a small `pynput`-like API surface for already-used behavior:
 
 - `keyboard.Key`

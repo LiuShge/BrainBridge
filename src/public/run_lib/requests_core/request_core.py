@@ -438,6 +438,11 @@ class Request:
         self._log(f"{FILE_PATH} Request.{method}() for multiple URLs completed")
         return result
 
+    @staticmethod
+    def _require_urls(method: str, urls: Tuple[Union[str, bytes], ...]) -> None:
+        if not urls:
+            raise ValueError(f"Request.{method}() requires at least one URL.")
+
     def get(
         self,
         *urls: Union[str, bytes],
@@ -456,6 +461,7 @@ class Request:
 
         if len(urls) > 1:
             return self._handle_multiple_requests("get", urls, **kwargs)
+        Request._require_urls("get", urls)
         return self._handle_single_request("get", urls[0], **kwargs)
 
     def post(
@@ -486,6 +492,7 @@ class Request:
 
         if len(urls) > 1:
             return self._handle_multiple_requests("post", urls, **kwargs)
+        Request._require_urls("post", urls)
         return self._handle_single_request("post", urls[0], **kwargs)
 
     def delete(
@@ -504,6 +511,7 @@ class Request:
 
         if len(urls) > 1:
             return self._handle_multiple_requests("delete", urls, **kwargs)
+        Request._require_urls("delete", urls)
         return self._handle_single_request("delete", urls[0], **kwargs)
 
     def put(
@@ -532,6 +540,7 @@ class Request:
 
         if len(urls) > 1:
             return self._handle_multiple_requests("put", urls, **kwargs)
+        Request._require_urls("put", urls)
         return self._handle_single_request("put", urls[0], **kwargs)
 
     def request_sse(

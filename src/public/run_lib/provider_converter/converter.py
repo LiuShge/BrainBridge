@@ -193,21 +193,62 @@ class Converter:
         True
         """
         if isinstance(str_type, list):
-            if not isinstance(_object, list): return False
-            if all(isinstance(item, str) for item in str_type):
-                str_type = "|".join(str_type)
-            else:
-                return isinstance(_object, list)
+            if not isinstance(_object, list):
+                return False
+            if not str_type:
+                return True
+            if len(str_type) == 1:
+                item_schema = str_type[0]
+                return all(Converter.parse_types(item_schema, item) is True for item in _object)
+            return all(
+                any(Converter.parse_types(candidate_schema, item) is True for candidate_schema in str_type)
+                for item in _object
+            )
 
         if isinstance(str_type, str):
-            str_type = str_type.lower().replace(" ", "")
-            type_names = [t.strip() for t in str_type.split("|")]
-            valid_types = [Converter._TYPE_MAPPING[n] for n in type_names if n in Converter._TYPE_MAPPING]
-            if "none" in type_names: valid_types.append(type(None))
-            return isinstance(_object, tuple(valid_types)) if valid_types else False
+            tokens = [token.strip() for token in str_type.split("|") if token.strip()]
+            if not tokens:
+                return False
 
-        if isinstance(str_type, dict): return isinstance(_object, dict)
-        return isinstance(_object, type(_object))
+            for token in tokens:
+                mapped_type = Converter._TYPE_MAPPING.get(token.lower())
+                if mapped_type is not None and isinstance(_object, mapped_type):
+                    return True
+                if isinstance(_object, str) and _object == token:
+                    return True
+            return False
+
+        if isinstance(str_type, dict):
+            if not isinstance(_object, dict):
+                return False
+
+            required_keys = str_type.get("requirements", [])
+            if isinstance(required_keys, list):
+                for required_key in required_keys:
+                    if isinstance(required_key, str) and required_key not in _object:
+                        return False
+
+            for key, schema in str_type.items():
+                if key == "requirements":
+                    continue
+
+                is_discriminator = Converter._is_literal_discriminator(schema)
+                if is_discriminator and key not in _object:
+                    return False
+                if key not in _object:
+                    continue
+                if Converter.parse_types(schema, _object[key]) is not True:
+                    return False
+            return True
+
+        return isinstance(_object, type(str_type))
+
+    @staticmethod
+    def _is_literal_discriminator(schema: Any) -> bool:
+        if not isinstance(schema, str):
+            return False
+        tokens = [token.strip() for token in schema.split("|") if token.strip()]
+        return bool(tokens) and all(token.lower() not in Converter._TYPE_MAPPING for token in tokens)
 
     @staticmethod
     def _generic_arg_replace(provider: str, kwargs: Mapping[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
@@ -238,11 +279,6 @@ class Converter:
             if not isinstance(target_key, str):
                 raise ValueError(f"Mapping for {key} must be a string")
             translated_info[target_key] = value
-
-        based_args = config.get("based_args", [])
-        if "stream" in based_args and "stream" not in kwargs:
-            stream_key = provider_map.get("stream", "stream")
-            translated_info[stream_key] = True
 
         return translated_info
 
