@@ -1,11 +1,8 @@
-from bootstrap_source_dir import _set_source_dir,_restore_sys_path
-_set_source_dir()
-from bootstrap_paths import change_sys_path
-change_sys_path(to_runlib=True)
-from mini_tools.timer import Time
-_restore_sys_path()
-
 from typing import Literal, Optional
+
+from src.public.run_lib.mini_tools.timer import Time
+
+__all__ = ["display_loading_bar"]
 
 def display_loading_bar(
         _timer: Time,

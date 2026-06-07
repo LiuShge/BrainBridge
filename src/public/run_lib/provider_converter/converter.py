@@ -2,18 +2,10 @@ from __future__ import annotations
 
 from os import path
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
-if __name__ == "__main__":
-    from bootstrap_source_dir import _set_source_dir,_restore_sys_path
-else:
-    from .bootstrap_source_dir import _set_source_dir,_restore_sys_path
-_set_source_dir()   # let bootstrap_paths can be import
 
-from bootstrap_paths import change_sys_path, restore_sys_path
-change_sys_path(to_runlib=True) # let libs under run_lib can be import
-from files_manager.manager import *
+from src.public.run_lib.files_manager.manager import read_json, return_path_of_dir_under_root_dir
 
-restore_sys_path()
-_restore_sys_path()
+__all__ = ["Converter", "Operator"]
 
 class _ConfigEngine:
     """

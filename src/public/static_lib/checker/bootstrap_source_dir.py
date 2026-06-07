@@ -2,6 +2,8 @@ from pathlib import Path
 from sys import path as sys_path
 from typing import Optional, List
 
+__all__ = ["_set_source_dir", "_restore_sys_path"]
+
 _RAW_SYS_PATH:Optional[List[str]] = None
 
 def _set_source_dir():

@@ -1,2 +1,3 @@
-chardet >= 5.2.0
-pynput >= 1.8.1
+# BrainBridge now uses only the standard library at runtime.
+# Install in editable mode from the repository root:
+#   python3 -m pip install -e .

@@ -1,6 +1,8 @@
 from typing import Literal, Dict, Set
 from time import perf_counter, localtime, sleep
 
+__all__ = ["Time"]
+
 
 class Time:
     """

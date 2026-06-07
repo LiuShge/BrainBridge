@@ -2,7 +2,18 @@ from pathlib import Path
 from os import path, listdir, scandir
 from typing import Dict, Literal, List, Union, Any, Set
 from json import loads, JSONDecodeError
-from chardet import detect
+
+from src.public.run_lib.mini_tools.chardet import detect
+
+__all__ = [
+    "return_path_of_dir_under_root_dir",
+    "return_dir_member",
+    "valid_path",
+    "return_full_tree",
+    "write_content_tofile",
+    "read_file",
+    "read_json",
+]
 
 
 def return_path_of_dir_under_root_dir(dir_name: str) -> str:

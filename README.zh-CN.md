@@ -1,131 +1,96 @@
 # BrainBridge
 
-BrainBridge 是一个适合直接在本仓库中使用的 Python 工具集。
-它主要解决这些具体问题：
+BrainBridge 是一个面向本地仓库使用的 Python 工具集，现在采用标准的可编辑安装方式。
 
-- 从仓库根目录或子包模块中整理 `sys.path`
-- 把通用请求参数转换成具体 provider 需要的请求体
-- 使用标准库 `urllib` 发送 HTTP 请求并解析 SSE 流
-- 运行一个简单的线程请求池
-- 显示终端选择面板和加载条
-- 读取、写入、校验和打包文件
+当前主要能力包括：
+
+- provider 参数转换
+- 基于 `urllib` 的 HTTP / SSE 请求
+- 线程请求分发
+- 文件工具与 `.bb` 打包
+- 结构化日志与完整性校验
+- 基于终端 raw 模式的交互工具
 
 [English](./README.md) | 中文版本 | [使用说明](./instruction.md) | [中文使用说明](./instruction.zh-CN.md)
 
-## 仓库内容
+## 安装
 
-仓库分成两层运行代码：
+使用 Python 3.12+，并在仓库根目录执行：
 
-- `src/public/run_lib` 放运行时会用到的工具。
-- `src/public/static_lib` 放日志、校验和信息读取等辅助工具。
-- `src/bootstrap_paths.py` 和 `src/bootstrap_source_dir.py` 是路径引导文件。
-- `config/` 保存运行配置和 provider 映射配置。
-- `storage/` 只放运行时生成的输出。
-
-这个项目不是框架，也不是包管理器。它是一组可以直接从仓库检出的源码模块。
-
-## 快速开始
-
-1. 激活自带的虚拟环境。
-
-   - PowerShell: `.\.venv\Scripts\Activate.ps1`
-   - Unix shell: `source .venv/Scripts/activate`
-
-2. 安装依赖。
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. 运行最小化烟雾测试。
-
-   ```bash
-   python src/bootstrap_paths.py
-   python src/.test/test_2.py
-   ```
-
-4. 如果要使用终端交互界面，请先确认环境里已经安装 `pynput`。
-
-## 导入方式
-
-如果从仓库根目录运行代码，先使用根目录的引导模块。
-
-```python
-from src.bootstrap_source_dir import _set_source_dir, _restore_sys_path
-from src.bootstrap_paths import change_sys_path, restore_sys_path
-
-_set_source_dir()
-change_sys_path(to_runlib=True)
-
-from provider_converter.converter import Converter
-from requests_core.request_core import Request
-
-restore_sys_path()
-_restore_sys_path()
+```bash
+python3 -m pip install -e .
 ```
 
-如果你直接运行 `src/public/...` 里的文件，请使用那个子包内自带的 `bootstrap_source_dir.py` 复制版。
+BrainBridge 现在正常通过 `src.*` 包路径导入，不再依赖 `sys.path` 引导才能使用。
+
+## 目录结构
+
+- `src/public/run_lib`：运行时工具
+- `src/public/static_lib`：日志、校验、信息读取等辅助工具
+- `src/public/run_lib/terminial_core`：内置终端 raw 输入内核
+- `config/sys_conf`：默认配置层
+- `config/user_conf`：覆盖配置层
+- `storage/`：运行输出目录
+- `src/.test/sandbox/base`：原始 sandbox 基线
+- `src/.test/sandbox/YYYY-MM-DD`：按日期归档的 sandbox 快照
+
+## 导入示例
+
+```python
+from src.public.run_lib.provider_converter.converter import Converter
+from src.public.run_lib.requests_core.request_core import Request
+from src.public.static_lib.logger.log_core import Logger, LogLevels
+
+payload = Converter(
+    "openai_completion",
+    model="openai/gpt-oss-20b",
+    messages=[{"role": "user", "content": "hello"}],
+).information
+
+requester = Request(timeout=30)
+logger = Logger(level=LogLevels.INFO, text="ready")
+```
 
 ## 核心模块
 
 | 模块 | 作用 |
 | --- | --- |
-| `src/bootstrap_paths.py` | 查找 `run_lib` 和 `static_lib`，然后把指定目录加入 `sys.path`。 |
-| `src/bootstrap_source_dir.py` | 把仓库的 `src` 目录加入 `sys.path`，并在需要时恢复。 |
-| `src/public/run_lib/files_manager/manager.py` | 文件与目录工具：`valid_path`、`read_file`、`read_json`、`write_content_tofile`、`return_full_tree`。 |
-| `src/public/run_lib/requests_core/request_core.py` | 基于标准库 `urllib` 的 `Request` 封装，支持 `get`、`post`、`put`、`delete` 和 SSE。 |
-| `src/public/run_lib/requests_core/thread_requests/thread_requests.py` | 线程请求池：`RequestTask`、`TaskResult`、`RequestWorker`、`RequestPool`。 |
-| `src/public/run_lib/provider_converter/converter.py` | `Converter` 负责 provider 参数映射，`Operator` 负责请求头和响应解析。 |
-| `src/public/run_lib/mini_tools/timer.py` | `Time` 和 `Time.Timer`，用于耗时统计和时间格式化。 |
-| `src/public/run_lib/mini_tools/loading_bar.py` | 终端加载条。 |
-| `src/public/run_lib/mini_tools/decision_panel.py` | 基于 `pynput` 的终端交互菜单。 |
-| `src/public/run_lib/mini_tools/files_convg.py` | `.bb` 目录树打包和解包工具，支持可选的内嵌文件树头。 |
-| `src/public/static_lib/checker/checker.py` | 依赖、版本、文件哈希和备份恢复工具。 |
-| `src/public/static_lib/logger/log_core.py` | 结构化日志工具和 `Logger` 类。 |
-| `src/public/static_lib/information/information.py` | 输出 `src/public/static_lib/information/config` 下的 JSON 文件。 |
+| `src/public/run_lib/files_manager/manager.py` | 文件读写、目录树遍历、JSON 读取、根目录路径定位 |
+| `src/public/run_lib/mini_tools/chardet.py` | 仓库内置的 `detect()` 编码检测替代实现 |
+| `src/public/run_lib/mini_tools/files_convg.py` | `.bb` 打包/解包工具，支持可选文件树头 |
+| `src/public/run_lib/mini_tools/decision_panel.py` | 终端选择面板 |
+| `src/public/run_lib/terminial_core/keyboard.py` | 带少量 `pynput` 风格接口的 raw 终端键盘监听 |
+| `src/public/run_lib/provider_converter/converter.py` | provider 参数转换与响应解析 |
+| `src/public/run_lib/requests_core/request_core.py` | 基于 `urllib` 的请求内核 |
+| `src/public/run_lib/requests_core/thread_requests/thread_requests.py` | 线程请求池 |
+| `src/public/static_lib/logger/log_core.py` | 结构化日志 |
+| `src/public/static_lib/checker/checker.py` | 版本、依赖、哈希和备份检查 |
 
-## 配置
+## 说明
 
-provider 转换器会读取下面几份配置：
-
-- `config/sys_conf/base_arg_match.json`
-- `config/sys_conf/escape_table.json`
-- `config/user_conf/base_arg_match.json`
-- `config/user_conf/escape_table.json`
-
-用户配置会覆盖系统默认值中相同的键。
-
-信息模块还会读取：
-
-- `src/public/static_lib/information/config/project_information.json`
-- `src/public/static_lib/information/config/py_env_information.json`
-
-## 实际说明
-
-- `Request.request_sse()` 返回的是已经解析好的事件字典，字段包含 `id`、`event`、`data`。
-- 当前 SSE 解析器只会产出包含 `data` 的事件。
-- `Converter` 只接受合并配置里已经定义过的 provider 方案。
-- `DecisionPanelPage` 以及相关终端交互工具需要 `pynput`。
-- `CheckTools.check_py_version()` 当前以 Python `3.12.0` 作为推荐基线，仓库本身是在 Python `3.12+` 环境下进行开发和烟雾测试的。
-- `write_content_tofile(..., file_code="auto")` 在空文件上会回退到 UTF-8。
-- `storage/` 只放运行时输出，不建议放源码。
+- 运行时依赖现在只使用标准库。
+- 旧的 bootstrap 文件仍然保留在仓库里，但新代码不应再依赖它们。
+- `DecisionPanelPage` 不再需要 `pynput`，现在使用内置 raw 终端输入后端。
+- `write_content_tofile(..., file_code="auto")` 等接口现在使用仓库内的编码检测器。
+- `.bb` 归档可以选择性嵌入紧凑文件树头，方便快速检查与校验。
 
 ## 推荐检查
 
-修改路径引导文件或运行时工具后，建议执行：
+先执行 `python3 -m pip install -e .`，然后跑：
 
 ```bash
-python src/bootstrap_paths.py
-python src/.test/test_2.py
-python src/public/static_lib/logger/log_core.py
+python3 src/.test/test_2.py
+python3 src/.test/test_1.py
+python3 src/.test/test_7.py
+python3 -m src.public.static_lib.logger.log_core
 ```
 
-如果你改了文件树或备份工具，再额外跑：
+如果改了终端交互相关代码，再补跑：
 
 ```bash
-python src/.test/test_1.py
+python3 src/.test/test_5.py
 ```
 
 ## 许可证
 
-本项目采用 MIT License。
+MIT。

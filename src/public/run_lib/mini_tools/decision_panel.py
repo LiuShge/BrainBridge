@@ -7,7 +7,15 @@ import time
 import shutil
 import unicodedata
 
-from pynput import keyboard
+from src.public.run_lib.terminial_core import keyboard
+
+__all__ = [
+    "ActionName",
+    "KeyName",
+    "OptionItem",
+    "PanelTheme",
+    "DecisionPanelPage",
+]
 
 
 ActionName = Literal["back", "continue", "decision"]
@@ -21,10 +29,10 @@ OptionItem = Dict[Literal["prompt", "output"], str]
 
 def _get_pynput_key(key_str: str) -> Union[keyboard.Key, keyboard.KeyCode]:
     """
-    Convert key name to pynput keyboard object.
+    Convert a key name to the built-in keyboard object.
 
     :param key_str: Key name, such as "Enter", "Esc", "w".
-    :return: pynput Key or KeyCode.
+    :return: Key or KeyCode.
     :raises ValueError: If unknown.
     Example:
     >>> _get_pynput_key("Enter") == keyboard.Key.enter
@@ -170,20 +178,20 @@ class DecisionPanelPage:
         default_keys: Dict[ActionName, KeyName] = {"decision": "Enter", "back": "Esc", "continue": "Tab"}
         merged = {**default_keys, **(enter_key or {})}
 
-        self._key_pynput: Dict[ActionName, keyboard.Key | keyboard.KeyCode | None] = {}
+        self._key_bindings: Dict[ActionName, keyboard.Key | keyboard.KeyCode | None] = {}
         self._key_display: Dict[ActionName, str] = {}
         for action in ("back", "continue", "decision"):
             action: Literal["back", "continue", "decision"]
             key_name = merged.get(action)
             if key_name is None:
-                self._key_pynput[action] = None
+                self._key_bindings[action] = None
                 self._key_display[action] = "N/A"
                 continue
             try:
-                self._key_pynput[action] = _get_pynput_key(key_name)
+                self._key_bindings[action] = _get_pynput_key(key_name)
                 self._key_display[action] = key_name
             except ValueError:
-                self._key_pynput[action] = None
+                self._key_bindings[action] = None
                 self._key_display[action] = "N/A"
 
     def set_options(self, options: Iterable[OptionItem]) -> None:
@@ -224,6 +232,8 @@ class DecisionPanelPage:
         if not self._options:
             self._clear()
             return None
+        if not keyboard.stdin_is_interactive():
+            raise RuntimeError("DecisionPanelPage requires an interactive TTY terminal.")
 
         self._result = None
         self._running = True
@@ -298,11 +308,11 @@ class DecisionPanelPage:
         elif key == keyboard.Key.down or key == keyboard.Key.right or is_char("s") or is_char("d"):
             self._selected_index = (self._selected_index + 1) % n
             moved = True
-        elif self._key_pynput.get("decision") is not None and key == self._key_pynput["decision"]:
+        elif self._key_bindings.get("decision") is not None and key == self._key_bindings["decision"]:
             self._result = self._options[self._selected_index]["output"]
             self._running = False
             return False
-        elif self._key_pynput.get("back") is not None and key == self._key_pynput["back"]:
+        elif self._key_bindings.get("back") is not None and key == self._key_bindings["back"]:
             self._result = None
             self._running = False
             return False
@@ -386,4 +396,3 @@ if __name__ == "__main__":
         page.set_options([{"prompt": "Do A", "output": "A"}, {"prompt": "Do B", "output": "B"}])
         v2 = page.run_once()
         print(v2)
-

@@ -1,11 +1,8 @@
 import tempfile
 from pathlib import Path
 
-from bootstrap_paths import change_sys_path
-change_sys_path(to_runlib=True)
-
-from files_manager.manager import return_full_tree, read_file
-from mini_tools.files_convg import (
+from src.public.run_lib.files_manager.manager import read_file, return_full_tree
+from src.public.run_lib.mini_tools.files_convg import (
     aggregate_to_backup,
     has_file_tree_header,
     inject_file_tree_header,

@@ -17,9 +17,40 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Dict, Iterable, Iterator, Mapping, Optional, Sequence, Tuple
 import logging
 
-from files_manager.manager import valid_path
+from src.public.run_lib.files_manager.manager import valid_path
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "MAGIC_START",
+    "MAGIC_END",
+    "TREE_BEGIN",
+    "TREE_END",
+    "RECORD_BEGIN",
+    "RECORD_END",
+    "META_PREFIX",
+    "TREE_DATA_PREFIX",
+    "FILE_META_PREFIX",
+    "FILE_CHECK_PREFIX",
+    "PAYLOAD_PREFIX",
+    "VERSION",
+    "TREE_HEADER_FORMAT",
+    "B64_WRAP",
+    "CHUNK_SIZE",
+    "BackupError",
+    "to_posix",
+    "is_special_marker",
+    "iter_tree_files",
+    "root_prefix_id",
+    "relative_under_root",
+    "b64_encode_stream",
+    "build_compact_file_tree",
+    "has_file_tree_header",
+    "read_file_tree_header",
+    "inject_file_tree_header",
+    "aggregate_to_backup",
+    "unpack_from_backup",
+]
 
 MAGIC_START = "BBPACK/3"
 MAGIC_END = "BBPACK_END"

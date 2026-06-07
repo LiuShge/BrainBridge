@@ -4,15 +4,15 @@ import importlib.util
 import hashlib
 from os import path
 
-from bootstrap_source_dir import _set_source_dir, _restore_sys_path
+from src.public.run_lib.files_manager.manager import (
+    read_file,
+    return_full_tree,
+    return_path_of_dir_under_root_dir,
+    valid_path,
+    write_content_tofile,
+)
 
-_set_source_dir()
-from bootstrap_paths import change_sys_path
-
-change_sys_path(to_runlib=True)
-from files_manager.manager import write_content_tofile,read_file,valid_path,return_full_tree,return_path_of_dir_under_root_dir
-
-_restore_sys_path()
+__all__ = ["CheckTools"]
 
 
 class CheckTools:

@@ -1,16 +1,17 @@
+import tempfile
 from os import path
 
-from bootstrap_paths import change_sys_path
-change_sys_path(to_runlib=True)
-from files_manager.manager import (
+from src.public.run_lib.files_manager.manager import (
     return_full_tree,
-    write_content_tofile,
     return_path_of_dir_under_root_dir,
 )
 
 src_dir = return_path_of_dir_under_root_dir("src")
-write_content_tofile(
-    path.join(src_dir, "dir_tree.txt"),
-    str(return_full_tree(src_dir)),
-    override=True,
-)
+
+with tempfile.TemporaryDirectory() as tmpdir:
+    output_path = path.join(tmpdir, "dir_tree.txt")
+    tree_snapshot = str(return_full_tree(src_dir))
+    with open(output_path, "w", encoding="utf-8") as file_obj:
+        file_obj.write(tree_snapshot)
+    assert path.exists(output_path)
+    assert "public" in tree_snapshot
