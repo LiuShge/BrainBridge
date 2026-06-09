@@ -1,148 +1,395 @@
 # BrainBridge Instruction Manual
 
-## 1. Overview
+This document describes the current public surface of BrainBridge after the package layout refactor.
 
-BrainBridge is used as a normal editable-installed package:
+## 1. Installation and import style
+
+Install in editable mode:
 
 ```bash
 python3 -m pip install -e .
 ```
 
-The active import style is package-based:
+Recommended import style:
 
 ```python
-from brainbridge.run_lib.requests_core.request_core import Request
-from brainbridge.run_lib.provider_converter.converter import Converter
-from brainbridge.static_lib.logger.log_core import Logger
+from brainbridge import Converter, Operator, Request, Logger, LogLevels
+from brainbridge.lib.runtime.files_manager import read_json, write_json
+from brainbridge.lib.runtime.provider_converter import build_headers, unwrap_response
+from brainbridge.utils import DecisionPanelPage, Time, detect, display_loading_bar
 ```
 
-The old bootstrap helpers have been removed from the active source tree.
+Do not add new `sys.path` bootstrap helpers for normal package use.
 
-## 2. Runtime layout
+## 2. Package layout
 
-- `brainbridge/run_lib/files_manager`: file and path helpers
-- `brainbridge/run_lib/mini_tools`: small runtime helpers
-- `brainbridge/run_lib/terminal_core`: built-in terminal raw-input backend
-- `brainbridge/run_lib/provider_converter`: provider config and payload conversion
-- `brainbridge/run_lib/requests_core`: request engine and threaded request helpers
-- `brainbridge/static_lib/logger`: structured logging
-- `brainbridge/static_lib/checker`: runtime checks and backup recovery helpers
-- `brainbridge/static_lib/information`: prints bundled JSON metadata
-- `.test`: smoke tests and sandbox fixtures
+- `brainbridge/lib/runtime`
+  Runtime request, conversion, file, and terminal modules.
+- `brainbridge/lib/static`
+  Logging, checking, and bundled information helpers.
+- `brainbridge/utils`
+  User-facing helper modules migrated from the old `mini_tools`.
+- `config/sys_conf`
+  Default provider configuration.
+- `config/user_conf`
+  Override layer for provider configuration.
+- `.test`
+  Smoke tests, pytest entrypoints, and sandbox fixtures.
 
-## 3. Dependency policy
+The old compatibility packages have been removed. Use only:
 
-Core runtime dependencies are standard-library only.
+- `brainbridge.lib.runtime`
+- `brainbridge.lib.static`
+- `brainbridge.utils`
 
-Removed third-party runtime dependencies:
+## 3. Public and private API guidance
 
-- `requests`
-- `chardet`
-- `pynput`
+Public APIs are the objects exported from:
 
-Replacements:
+- `brainbridge`
+- `brainbridge.lib.runtime.provider_converter`
+- `brainbridge.lib.runtime.requests_core`
+- `brainbridge.lib.runtime.files_manager`
+- `brainbridge.lib.runtime.terminal_core`
+- `brainbridge.lib.static.logger`
+- `brainbridge.utils`
 
-- HTTP is handled by `urllib`
-- encoding detection is handled by `brainbridge.run_lib.mini_tools.chardet.detect`
-- terminal key listening is handled by `brainbridge.run_lib.terminal_core.keyboard`
+Do not build new code around private internals such as:
 
-## 4. Common import examples
+- `_ConfigEngine`
+- `_RawKeyReader`
+- any name beginning with `_`
 
-### 4.1 Files
+## 4. Top-level API
 
 ```python
-from brainbridge.run_lib.files_manager.manager import (
-    read_file,
-    read_json,
-    return_full_tree,
-    valid_path,
-    write_content_tofile,
+from brainbridge import (
+    Converter,
+    Logger,
+    LogLevels,
+    Operator,
+    Request,
+    RequestException,
+    Response,
 )
 ```
 
-### 4.2 Requests
+Recommended usage:
+
+- `Converter` for provider payload conversion
+- `Operator` for header building and response unwrapping
+- `Request` for HTTP and SSE requests
+- `Logger` and `LogLevels` for structured logs
+
+## 5. Provider payload conversion
+
+Recommended imports:
 
 ```python
-from brainbridge.run_lib.requests_core.request_core import Request
+from brainbridge.lib.runtime.provider_converter import (
+    Converter,
+    build_headers,
+    list_providers,
+    provider_exists,
+    unwrap_response,
+)
+```
 
+Example:
+
+```python
+payload = Converter(
+    "openai_completion",
+    model="openai/gpt-oss-20b",
+    messages=[{"role": "user", "content": "Hello"}],
+).information
+
+headers = build_headers("your-token", include_accept=True)
+print(provider_exists("openai_completion"))
+print(list_providers()[:3])
+```
+
+Notes:
+
+- `Converter(...)` validates provider payloads against merged config schemas.
+- `stream` is only included when you pass it explicitly.
+- `build_headers(...)` calls `Operator.HeadersBuilder.builder(...)`.
+- `unwrap_response(...)` calls `Operator.ResponseUnwrap.unwrap(...)`.
+
+### Direct `ResponseUnwrap` usage
+
+```python
+from brainbridge.lib.runtime.provider_converter import Operator
+
+parsed = Operator.ResponseUnwrap.unwrap(
+    "openai_completion",
+    {
+        "choices": [{"message": {"content": "Paris."}}],
+        "usage": {"total_tokens": 1},
+    },
+)
+print(parsed["response_text"])
+```
+
+## 6. Requests: GET, POST, and SSE
+
+Recommended imports:
+
+```python
+from brainbridge.lib.runtime.requests_core import Request, iter_sse_json
+```
+
+### GET
+
+```python
 requester = Request(timeout=30)
 response = requester.get("https://example.com")
 print(response.status_code)
 print(response.text)
 ```
 
-### 4.3 Threaded requests
+### POST with JSON
 
 ```python
-from brainbridge.run_lib.requests_core.request_core import Request
-from brainbridge.run_lib.requests_core.thread_requests.thread_requests import RequestPool, RequestTask
-
-requester = Request(timeout=30)
-pool = RequestPool(requester)
-tasks = [
-    RequestTask("a", "get", ("https://example.com",)),
-    RequestTask("b", "get", ("https://example.org",)),
-]
-results = pool.execute_all(tasks)
+response = requester.post(
+    "https://example.com/api",
+    json={"hello": "world"},
+)
+print(response.ok)
+print(response.json())
 ```
 
-### 4.4 Provider conversion
+### SSE request
 
 ```python
-from brainbridge.run_lib.provider_converter.converter import Converter, Operator
+events = requester.request_sse(
+    "POST",
+    "https://example.com/sse",
+    json={"stream": True},
+    headers={"Authorization": "Bearer token"},
+)
 
-payload = Converter(
-    "openai_completion",
-    model="openai/gpt-oss-20b",
-    messages=[{"role": "user", "content": "hello"}],
-    stream=True,
-).information
+for event in events:
+    print(event["data"])
+```
 
-headers = Operator.HeadersBuilder.builder("token")
-parsed = Operator.ResponseUnwrap.unwrap("openai_completion", {"choices": []})
+### SSE JSON helper
+
+```python
+for item in iter_sse_json(events):
+    print(item)
 ```
 
 Notes:
 
-- `stream` is only included when you pass it explicitly.
-- Prefer `Operator.ResponseUnwrap.unwrap(...)`; `ResponseUnwarp` and `unwarp()` remain compatibility aliases.
+- `iter_sse_json(...)` consumes the event dictionaries produced by `request_sse(...)`.
+- It skips empty payloads and the default `[DONE]` token.
 
-### 4.5 Logging
+## 7. Files: read, write, and JSON
+
+Recommended imports:
 
 ```python
-from brainbridge.static_lib.logger.log_core import Logger, LogLevels
-
-logger = Logger(level=LogLevels.INFO, text="hello")
-print(logger.text_log_builder())
+from brainbridge.lib.runtime.files_manager import (
+    read_file,
+    read_json,
+    return_full_tree,
+    return_path_of_dir_under_root_dir,
+    valid_path,
+    write_content_tofile,
+    write_json,
+)
 ```
 
-### 4.6 Terminal interaction
+Example:
 
 ```python
-from brainbridge.run_lib.mini_tools.decision_panel import DecisionPanelPage
+config_root = return_path_of_dir_under_root_dir("config")
+print(config_root)
 
+write_json("sample.json", {"hello": "world"}, indent=2)
+data = read_json("sample.json")
+print(data["hello"])
+```
+
+Notes:
+
+- `write_json(...)` is a thin helper around `json.dumps(...)` and `write_content_tofile(...)`.
+- `read_file(..., file_code="auto")` and `write_content_tofile(..., file_code="auto")` use the in-repo detector.
+
+## 8. Terminal keyboard API
+
+Recommended imports:
+
+```python
+from brainbridge.lib.runtime.terminal_core import (
+    Key,
+    KeyCode,
+    Listener,
+    decode_escape_sequence,
+    decode_single_char,
+)
+```
+
+Examples:
+
+```python
+assert decode_escape_sequence("\x1b[A") == Key.up
+assert decode_escape_sequence("\x1b[3~") == Key.delete
+assert decode_single_char("\x01") == Key.ctrl_a
+assert decode_single_char("w") == KeyCode.from_char("w")
+```
+
+Supported public helpers:
+
+- `decode_escape_sequence(...)`
+- `decode_single_char(...)`
+- `Listener`
+- `Key`
+- `KeyCode`
+
+Common mapped keys include:
+
+- arrows: `up`, `down`, `left`, `right`
+- editing/navigation: `delete`, `home`, `end`, `page_up`, `page_down`, `insert`
+- control keys: `ctrl_a`, `ctrl_c`, `ctrl_d`, `ctrl_e`, `ctrl_k`, `ctrl_u`
+
+Do not use `_RawKeyReader` directly.
+
+## 9. DecisionPanelPage
+
+Recommended import:
+
+```python
+from brainbridge.utils import DecisionPanelPage
+```
+
+Minimal example:
+
+```python
 page = DecisionPanelPage(operation_tips="Use arrow keys or WASD.")
 page.set_options([
     {"prompt": "Open", "output": "open"},
     {"prompt": "Exit", "output": "exit"},
 ])
 result = page.run_once()
+print(result)
 ```
 
-`DecisionPanelPage` uses the raw terminal backend in `brainbridge.run_lib.terminal_core`.
-Confirm uses `Enter` by default, and `Tab` is accepted as the same confirm action.
-The backend intentionally keeps a small `pynput`-like API surface for already-used behavior:
+Default behavior:
 
-- `keyboard.Key`
-- `keyboard.KeyCode.from_char()`
-- `keyboard.Listener`
+- requires an interactive TTY
+- arrow keys and `WASD` move the current selection
+- `Enter` confirms
+- `Tab` also confirms
+- `Esc` returns `None`
 
-## 5. `.bb` archive helpers
+Current extension points:
 
-Main module:
+- `enable_input_box=True`
+- `input_clear_keys={...}`
+- `input_return_mode="selection"` or `"dict"`
+- `highlight_current=True`
+
+Notes:
+
+- Default behavior remains the same when extensions are not enabled.
+- When `enable_input_box=True` and `input_return_mode="dict"`, `run_once()` returns `{"selection": ..., "input": ...}`.
+- The optional input box accepts printable characters plus editing helpers such as `backspace`, `delete`, `home`, `end`, `ctrl_a`, `ctrl_e`, `ctrl_k`, and `ctrl_u`.
+- Arrow keys continue to control option selection, not input-box cursor movement.
+
+## 10. Loading bar
+
+Recommended import:
 
 ```python
-from brainbridge.run_lib.mini_tools.files_convg import (
+from brainbridge.utils import Time, display_loading_bar
+```
+
+Example:
+
+```python
+timer = Time()
+display_loading_bar(
+    timer,
+    "=",
+    ">",
+    ".",
+    duration=2,
+    speed="high",
+    method="replace",
+)
+```
+
+## 11. Logger
+
+Recommended import:
+
+```python
+from brainbridge.lib.static.logger import Logger, LogLevels, log_to_file
+```
+
+Examples:
+
+```python
+logger = Logger(level=LogLevels.INFO, text="ready", context="boot")
+print(logger.text_log_builder())
+
+log_to_file(
+    "request complete",
+    level=LogLevels.INFO,
+    context="api",
+    file_path="logs/app.jsonl",
+)
+```
+
+Notes:
+
+- `log_to_file(...)` is a convenience wrapper around `Logger.output_log(...)`.
+- It prepares the target file path for append-style logging.
+
+## 12. `user_conf` write backend
+
+Recommended import:
+
+```python
+from brainbridge.lib.runtime.provider_converter import (
+    read_user_provider_config,
+    update_user_provider_config,
+    write_user_provider_config,
+)
+```
+
+Example:
+
+```python
+cfg = read_user_provider_config("base_arg_match.json")
+
+update_user_provider_config(
+    "escape_table.json",
+    {"demo_provider": {"input": {"model": "str"}}},
+)
+```
+
+Rules:
+
+- only `config/user_conf/base_arg_match.json` and `config/user_conf/escape_table.json` are writable
+- absolute paths are rejected
+- path traversal is rejected
+- writes are validated as JSON
+- `sys_conf` is not modified by these helpers
+
+Configuration merge semantics stay the same:
+
+- `sys_conf` provides defaults
+- `user_conf` overrides defaults
+
+## 13. `.bb` archive helpers
+
+Recommended import:
+
+```python
+from brainbridge.utils import (
     aggregate_to_backup,
     has_file_tree_header,
     inject_file_tree_header,
@@ -151,74 +398,51 @@ from brainbridge.run_lib.mini_tools.files_convg import (
 )
 ```
 
-Notes:
+Example:
 
-- `.bb` now uses the `BBPACK/3` format
-- file-tree headers are optional
-- headers can be injected later and validated
-- sandbox snapshots follow `base/` plus `YYYY-MM-DD/`
+```python
+from brainbridge.lib.runtime.files_manager import return_full_tree
 
-### 5.1 Record-level format specification
+tree = return_full_tree("/path/to/project")
 
-`.bb` files are UTF-8 text with one logical record per line:
+aggregate_to_backup(
+    tree,
+    "/path/to/archive.bb",
+    include_file_tree_header=True,
+)
 
-```text
-BBPACK/3
-META {"kind":"backup","version":3,"b64_wrap":76,"chunk_size":1048576}
-META {"kind":"root","root_id":"<sha16>","root_posix":"<root path>"}
-META {"kind":"tree_header","format":"compact-tree-v1","line_count":N,"sha256":"<digest>"}   # optional
-TREE_BEGIN
-TREE_DATA <base64-encoded JSON tree header>                                                    # optional
-TREE_END                                                                                        # optional
-FILE_BEGIN
-FILE_META {"root_id":"<sha16>","rel":"path/in/root","src_full_posix":"<source path>","encoding":"b64"}
-FILE_DATA <base64 payload chunk>
-FILE_CHECK {"size":123,"sha256":"<digest>"}
-FILE_END
-...
-BBPACK_END
+header = read_file_tree_header("/path/to/archive.bb", validate=True)
+print(header["format"])
 ```
 
-- The leading `META {"kind":"backup",...}` line declares format version and Base64 chunking metadata.
-- Each `META {"kind":"root",...}` line maps a stable `root_id` to the original root path.
-- The optional tree-header block stores Base64-encoded JSON for the `compact-tree-v1` summary and is guarded by `line_count` plus `sha256`.
-- Each file record begins with `FILE_BEGIN`, carries one `FILE_META`, one or more `FILE_DATA` lines, then a `FILE_CHECK` and `FILE_END`.
+Format notes:
 
-### 5.2 Validation and extraction rules
+- current magic header: `BBPACK/3`
+- metadata is stored as JSON text records
+- file payloads are Base64 text records
+- file-tree headers are optional
+- extraction rejects absolute paths and `..` traversal
 
-- `FILE_DATA` always stores Base64 text, even for plain-text files.
-- Restore validates both `FILE_CHECK.size` and `FILE_CHECK.sha256`.
-- `rel` must stay relative to its declared root; absolute paths and `..` traversal are rejected.
-- If a tree header is present and validation is requested, its flattened file list must match the actual file records.
+## 14. Storage and runtime behavior
 
-## 6. Configuration
+- `storage/` is no longer a required runtime dependency.
+- Runtime code should use explicit output paths or caller-supplied destinations.
 
-Provider conversion reads:
+## 15. Testing
 
-- `config/sys_conf/base_arg_match.json`
-- `config/sys_conf/escape_table.json`
-- `config/user_conf/base_arg_match.json`
-- `config/user_conf/escape_table.json`
-
-`user_conf` overrides `sys_conf`.
-
-## 7. Validation
-
-Recommended validation flow:
+Recommended flow:
 
 ```bash
 python3 -m pip install -e .
-python3 -m py_compile $(rg --files -g '*.py' .test brainbridge)
-python3 .test/test_2.py
-python3 .test/test_1.py
-python3 .test/test_7.py
-python3 .test/test_5.py
-python3 -m brainbridge.static_lib.logger.log_core
+python3 -m py_compile $(find brainbridge .test -name '*.py')
+python3 -m pytest
 ```
 
-## 8. Practical notes
+Useful smoke tests:
 
-- `.test/test_5.py` is the internal decision-panel/backend smoke test, not a `pynput` check.
-- `write_content_tofile(..., file_code="auto")` and `read_file(..., file_code="auto")` rely on the in-repo detector.
-- `storage/` is runtime output, not source.
-- Keep repository guidance factual and concise.
+```bash
+python3 .test/test_1.py
+python3 .test/test_2.py
+python3 .test/test_5.py
+python3 .test/test_7.py
+```

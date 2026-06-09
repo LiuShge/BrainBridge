@@ -14,3 +14,17 @@ include-package-data = true
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["brainbridge*"]
+
+[tool.pytest.ini_options]
+testpaths = [".test"]
+python_files = [
+    "test_1.py",
+    "test_2.py",
+    "test_5.py",
+    "test_7.py",
+    "test_imports.py",
+    "test_pytest_smoke.py",
+    "test_user_config.py",
+]
+norecursedirs = [".test/sandbox", ".test/__pycache__"]
+addopts = "-q"

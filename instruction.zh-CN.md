@@ -1,148 +1,395 @@
 # BrainBridge 使用说明
 
-## 1. 总览
+本文档描述包结构重整之后，BrainBridge 当前真实可用的公开接口。
 
-BrainBridge 现在按标准可编辑安装方式使用：
+## 1. 安装与导入风格
+
+使用可编辑安装：
 
 ```bash
 python3 -m pip install -e .
 ```
 
-当前推荐导入方式是直接使用包路径：
+推荐导入方式：
 
 ```python
-from brainbridge.run_lib.requests_core.request_core import Request
-from brainbridge.run_lib.provider_converter.converter import Converter
-from brainbridge.static_lib.logger.log_core import Logger
+from brainbridge import Converter, Operator, Request, Logger, LogLevels
+from brainbridge.lib.runtime.files_manager import read_json, write_json
+from brainbridge.lib.runtime.provider_converter import build_headers, unwrap_response
+from brainbridge.utils import DecisionPanelPage, Time, detect, display_loading_bar
 ```
 
-仓库里的旧 bootstrap 辅助文件已经从现行源码树中移除。
+正常包使用场景下，不要再新增 `sys.path` bootstrap 代码。
 
-## 2. 运行时结构
+## 2. 包结构
 
-- `brainbridge/run_lib/files_manager`：文件与路径工具
-- `brainbridge/run_lib/mini_tools`：小型运行时工具
-- `brainbridge/run_lib/terminal_core`：内置终端 raw 输入后端
-- `brainbridge/run_lib/provider_converter`：provider 配置与参数转换
-- `brainbridge/run_lib/requests_core`：请求内核与线程请求工具
-- `brainbridge/static_lib/logger`：结构化日志
-- `brainbridge/static_lib/checker`：检查与备份恢复工具
-- `brainbridge/static_lib/information`：输出内置 JSON 信息
-- `.test`：烟雾测试和 sandbox fixture
+- `brainbridge/lib/runtime`
+  运行时请求、转换、文件、终端模块。
+- `brainbridge/lib/static`
+  日志、检查、内置信息等静态辅助模块。
+- `brainbridge/utils`
+  面向使用者的小工具模块，由旧 `mini_tools` 迁移而来。
+- `config/sys_conf`
+  默认 provider 配置层。
+- `config/user_conf`
+  provider 配置覆盖层。
+- `.test`
+  烟雾测试、pytest 入口和 sandbox fixtures。
 
-## 3. 依赖策略
+旧兼容包已经删除。现在只使用：
 
-核心运行时现在只使用标准库。
+- `brainbridge.lib.runtime`
+- `brainbridge.lib.static`
+- `brainbridge.utils`
 
-已移除的第三方运行时依赖：
+## 3. Public / private API 说明
 
-- `requests`
-- `chardet`
-- `pynput`
+公开 API 以以下导出面为准：
 
-当前替代方案：
+- `brainbridge`
+- `brainbridge.lib.runtime.provider_converter`
+- `brainbridge.lib.runtime.requests_core`
+- `brainbridge.lib.runtime.files_manager`
+- `brainbridge.lib.runtime.terminal_core`
+- `brainbridge.lib.static.logger`
+- `brainbridge.utils`
 
-- HTTP 由 `urllib` 处理
-- 编码检测由 `brainbridge.run_lib.mini_tools.chardet.detect` 处理
-- 终端按键监听由 `brainbridge.run_lib.terminal_core.keyboard` 处理
+不要基于以下私有内部实现写新代码：
 
-## 4. 常见导入示例
+- `_ConfigEngine`
+- `_RawKeyReader`
+- 任意以下划线开头的名称
 
-### 4.1 文件工具
+## 4. 顶层 API
 
 ```python
-from brainbridge.run_lib.files_manager.manager import (
-    read_file,
-    read_json,
-    return_full_tree,
-    valid_path,
-    write_content_tofile,
+from brainbridge import (
+    Converter,
+    Logger,
+    LogLevels,
+    Operator,
+    Request,
+    RequestException,
+    Response,
 )
 ```
 
-### 4.2 请求
+推荐职责：
+
+- `Converter` 用于 provider payload 转换
+- `Operator` 用于构造请求头和解包响应
+- `Request` 用于 HTTP / SSE 请求
+- `Logger` 与 `LogLevels` 用于结构化日志
+
+## 5. Provider payload 转换
+
+推荐导入：
 
 ```python
-from brainbridge.run_lib.requests_core.request_core import Request
+from brainbridge.lib.runtime.provider_converter import (
+    Converter,
+    build_headers,
+    list_providers,
+    provider_exists,
+    unwrap_response,
+)
+```
 
+示例：
+
+```python
+payload = Converter(
+    "openai_completion",
+    model="openai/gpt-oss-20b",
+    messages=[{"role": "user", "content": "Hello"}],
+).information
+
+headers = build_headers("your-token", include_accept=True)
+print(provider_exists("openai_completion"))
+print(list_providers()[:3])
+```
+
+说明：
+
+- `Converter(...)` 会按合并后的配置 schema 校验 payload。
+- `stream` 只有在显式传入时才会进入 payload。
+- `build_headers(...)` 内部调用 `Operator.HeadersBuilder.builder(...)`。
+- `unwrap_response(...)` 内部调用 `Operator.ResponseUnwrap.unwrap(...)`。
+
+### 直接使用 `ResponseUnwrap`
+
+```python
+from brainbridge.lib.runtime.provider_converter import Operator
+
+parsed = Operator.ResponseUnwrap.unwrap(
+    "openai_completion",
+    {
+        "choices": [{"message": {"content": "Paris."}}],
+        "usage": {"total_tokens": 1},
+    },
+)
+print(parsed["response_text"])
+```
+
+## 6. 请求：GET、POST 与 SSE
+
+推荐导入：
+
+```python
+from brainbridge.lib.runtime.requests_core import Request, iter_sse_json
+```
+
+### GET
+
+```python
 requester = Request(timeout=30)
 response = requester.get("https://example.com")
 print(response.status_code)
 print(response.text)
 ```
 
-### 4.3 线程请求
+### 带 JSON 的 POST
 
 ```python
-from brainbridge.run_lib.requests_core.request_core import Request
-from brainbridge.run_lib.requests_core.thread_requests.thread_requests import RequestPool, RequestTask
-
-requester = Request(timeout=30)
-pool = RequestPool(requester)
-tasks = [
-    RequestTask("a", "get", ("https://example.com",)),
-    RequestTask("b", "get", ("https://example.org",)),
-]
-results = pool.execute_all(tasks)
+response = requester.post(
+    "https://example.com/api",
+    json={"hello": "world"},
+)
+print(response.ok)
+print(response.json())
 ```
 
-### 4.4 Provider 转换
+### SSE 请求
 
 ```python
-from brainbridge.run_lib.provider_converter.converter import Converter, Operator
+events = requester.request_sse(
+    "POST",
+    "https://example.com/sse",
+    json={"stream": True},
+    headers={"Authorization": "Bearer token"},
+)
 
-payload = Converter(
-    "openai_completion",
-    model="openai/gpt-oss-20b",
-    messages=[{"role": "user", "content": "hello"}],
-    stream=True,
-).information
+for event in events:
+    print(event["data"])
+```
 
-headers = Operator.HeadersBuilder.builder("token")
-parsed = Operator.ResponseUnwrap.unwrap("openai_completion", {"choices": []})
+### SSE JSON helper
+
+```python
+for item in iter_sse_json(events):
+    print(item)
 ```
 
 说明：
 
-- `stream` 只有在显式传入时才会进入 payload。
-- 优先使用 `Operator.ResponseUnwrap.unwrap(...)`；`ResponseUnwarp` 和 `unwarp()` 仍保留为兼容别名。
+- `iter_sse_json(...)` 接收 `request_sse(...)` 产出的事件字典。
+- 它会跳过空数据和默认 `[DONE]` 结束标记。
 
-### 4.5 日志
+## 7. 文件：读取、写入、JSON
+
+推荐导入：
 
 ```python
-from brainbridge.static_lib.logger.log_core import Logger, LogLevels
-
-logger = Logger(level=LogLevels.INFO, text="hello")
-print(logger.text_log_builder())
+from brainbridge.lib.runtime.files_manager import (
+    read_file,
+    read_json,
+    return_full_tree,
+    return_path_of_dir_under_root_dir,
+    valid_path,
+    write_content_tofile,
+    write_json,
+)
 ```
 
-### 4.6 终端交互
+示例：
 
 ```python
-from brainbridge.run_lib.mini_tools.decision_panel import DecisionPanelPage
+config_root = return_path_of_dir_under_root_dir("config")
+print(config_root)
 
+write_json("sample.json", {"hello": "world"}, indent=2)
+data = read_json("sample.json")
+print(data["hello"])
+```
+
+说明：
+
+- `write_json(...)` 是对 `json.dumps(...)` 和 `write_content_tofile(...)` 的薄封装。
+- `read_file(..., file_code="auto")` 和 `write_content_tofile(..., file_code="auto")` 使用仓库内置编码检测器。
+
+## 8. 终端键盘 API
+
+推荐导入：
+
+```python
+from brainbridge.lib.runtime.terminal_core import (
+    Key,
+    KeyCode,
+    Listener,
+    decode_escape_sequence,
+    decode_single_char,
+)
+```
+
+示例：
+
+```python
+assert decode_escape_sequence("\x1b[A") == Key.up
+assert decode_escape_sequence("\x1b[3~") == Key.delete
+assert decode_single_char("\x01") == Key.ctrl_a
+assert decode_single_char("w") == KeyCode.from_char("w")
+```
+
+当前公开 helper：
+
+- `decode_escape_sequence(...)`
+- `decode_single_char(...)`
+- `Listener`
+- `Key`
+- `KeyCode`
+
+常见映射包括：
+
+- 方向键：`up`、`down`、`left`、`right`
+- 编辑/导航：`delete`、`home`、`end`、`page_up`、`page_down`、`insert`
+- 控制键：`ctrl_a`、`ctrl_c`、`ctrl_d`、`ctrl_e`、`ctrl_k`、`ctrl_u`
+
+不要直接使用 `_RawKeyReader`。
+
+## 9. DecisionPanelPage
+
+推荐导入：
+
+```python
+from brainbridge.utils import DecisionPanelPage
+```
+
+最小示例：
+
+```python
 page = DecisionPanelPage(operation_tips="Use arrow keys or WASD.")
 page.set_options([
     {"prompt": "Open", "output": "open"},
     {"prompt": "Exit", "output": "exit"},
 ])
 result = page.run_once()
+print(result)
 ```
 
-`DecisionPanelPage` 使用 `brainbridge.run_lib.terminal_core` 里的 raw 终端后端。
-默认用 `Enter` 确认，`Tab` 也会按同样的确认动作处理。
-这个后端刻意保留了一小部分 `pynput` 风格接口，以兼容已经在用的行为：
+默认行为：
 
-- `keyboard.Key`
-- `keyboard.KeyCode.from_char()`
-- `keyboard.Listener`
+- 需要交互式 TTY
+- 方向键和 `WASD` 用于移动当前选项
+- `Enter` 确认
+- `Tab` 也会确认
+- `Esc` 返回 `None`
 
-## 5. `.bb` 归档工具
+当前扩展点：
 
-主要入口：
+- `enable_input_box=True`
+- `input_clear_keys={...}`
+- `input_return_mode="selection"` 或 `"dict"`
+- `highlight_current=True`
+
+说明：
+
+- 关闭扩展参数时，默认行为保持原样。
+- 当 `enable_input_box=True` 且 `input_return_mode="dict"` 时，`run_once()` 返回 `{"selection": ..., "input": ...}`。
+- 可选输入框支持可打印字符，以及 `backspace`、`delete`、`home`、`end`、`ctrl_a`、`ctrl_e`、`ctrl_k`、`ctrl_u` 等编辑键。
+- 方向键仍然用于选项移动，而不是输入框光标移动。
+
+## 10. Loading bar
+
+推荐导入：
 
 ```python
-from brainbridge.run_lib.mini_tools.files_convg import (
+from brainbridge.utils import Time, display_loading_bar
+```
+
+示例：
+
+```python
+timer = Time()
+display_loading_bar(
+    timer,
+    "=",
+    ">",
+    ".",
+    duration=2,
+    speed="high",
+    method="replace",
+)
+```
+
+## 11. 日志
+
+推荐导入：
+
+```python
+from brainbridge.lib.static.logger import Logger, LogLevels, log_to_file
+```
+
+示例：
+
+```python
+logger = Logger(level=LogLevels.INFO, text="ready", context="boot")
+print(logger.text_log_builder())
+
+log_to_file(
+    "request complete",
+    level=LogLevels.INFO,
+    context="api",
+    file_path="logs/app.jsonl",
+)
+```
+
+说明：
+
+- `log_to_file(...)` 是对 `Logger.output_log(...)` 的便捷封装。
+- 它会先准备目标文件路径，再进行追加式日志写入。
+
+## 12. `user_conf` 写入后端
+
+推荐导入：
+
+```python
+from brainbridge.lib.runtime.provider_converter import (
+    read_user_provider_config,
+    update_user_provider_config,
+    write_user_provider_config,
+)
+```
+
+示例：
+
+```python
+cfg = read_user_provider_config("base_arg_match.json")
+
+update_user_provider_config(
+    "escape_table.json",
+    {"demo_provider": {"input": {"model": "str"}}},
+)
+```
+
+规则：
+
+- 只允许写 `config/user_conf/base_arg_match.json` 与 `config/user_conf/escape_table.json`
+- 拒绝绝对路径
+- 拒绝路径穿越
+- 写入前后都会校验 JSON 合法性
+- 这些 helper 不会修改 `sys_conf`
+
+配置合并语义保持不变：
+
+- `sys_conf` 提供默认值
+- `user_conf` 负责覆盖默认值
+
+## 13. `.bb` 归档工具
+
+推荐导入：
+
+```python
+from brainbridge.utils import (
     aggregate_to_backup,
     has_file_tree_header,
     inject_file_tree_header,
@@ -151,74 +398,51 @@ from brainbridge.run_lib.mini_tools.files_convg import (
 )
 ```
 
-说明：
+示例：
 
-- `.bb` 现为 `BBPACK/3` 格式
-- 文件树头是可选的
-- 文件树头可以后注入并校验
-- sandbox 快照遵循 `base/` 加 `YYYY-MM-DD/` 规则
+```python
+from brainbridge.lib.runtime.files_manager import return_full_tree
 
-### 5.1 记录级格式规范
+tree = return_full_tree("/path/to/project")
 
-`.bb` 文件是 UTF-8 文本，每一行都是一条逻辑记录：
+aggregate_to_backup(
+    tree,
+    "/path/to/archive.bb",
+    include_file_tree_header=True,
+)
 
-```text
-BBPACK/3
-META {"kind":"backup","version":3,"b64_wrap":76,"chunk_size":1048576}
-META {"kind":"root","root_id":"<sha16>","root_posix":"<root path>"}
-META {"kind":"tree_header","format":"compact-tree-v1","line_count":N,"sha256":"<digest>"}   # 可选
-TREE_BEGIN
-TREE_DATA <base64 编码后的 JSON 文件树头>                                                      # 可选
-TREE_END                                                                                        # 可选
-FILE_BEGIN
-FILE_META {"root_id":"<sha16>","rel":"root 内相对路径","src_full_posix":"<源路径>","encoding":"b64"}
-FILE_DATA <base64 载荷分块>
-FILE_CHECK {"size":123,"sha256":"<digest>"}
-FILE_END
-...
-BBPACK_END
+header = read_file_tree_header("/path/to/archive.bb", validate=True)
+print(header["format"])
 ```
 
-- 开头的 `META {"kind":"backup",...}` 用来声明格式版本和 Base64 分块元数据。
-- 每一条 `META {"kind":"root",...}` 把稳定的 `root_id` 映射回原始根路径。
-- 可选的文件树头块保存 `compact-tree-v1` 摘要的 Base64 JSON，并由 `line_count` 和 `sha256` 保护。
-- 每个文件记录都以 `FILE_BEGIN` 开始，随后是一个 `FILE_META`、一行或多行 `FILE_DATA`，最后是 `FILE_CHECK` 和 `FILE_END`。
+格式说明：
 
-### 5.2 校验与解包规则
+- 当前魔术头：`BBPACK/3`
+- 元数据以 JSON 文本记录存储
+- 文件内容以 Base64 文本记录存储
+- 文件树头是可选的
+- 解包会拒绝绝对路径和 `..` 路径穿越
 
-- `FILE_DATA` 无论源文件是否是文本，都会以 Base64 文本方式存储。
-- 恢复时会同时校验 `FILE_CHECK.size` 和 `FILE_CHECK.sha256`。
-- `rel` 必须始终相对于声明的 root；绝对路径和 `..` 路径穿越会被拒绝。
-- 如果存在文件树头且启用了校验，展开后的文件列表必须与实际文件记录完全匹配。
+## 14. Storage 与运行时行为
 
-## 6. 配置
+- `storage/` 已不再是必须的运行时依赖。
+- 运行时代码应使用显式输出路径或调用方提供的目标位置。
 
-Provider 转换会读取：
+## 15. 测试
 
-- `config/sys_conf/base_arg_match.json`
-- `config/sys_conf/escape_table.json`
-- `config/user_conf/base_arg_match.json`
-- `config/user_conf/escape_table.json`
-
-`user_conf` 会覆盖 `sys_conf`。
-
-## 7. 验证
-
-推荐验证流程：
+推荐流程：
 
 ```bash
 python3 -m pip install -e .
-python3 -m py_compile $(rg --files -g '*.py' .test brainbridge)
-python3 .test/test_2.py
-python3 .test/test_1.py
-python3 .test/test_7.py
-python3 .test/test_5.py
-python3 -m brainbridge.static_lib.logger.log_core
+python3 -m py_compile $(find brainbridge .test -name '*.py')
+python3 -m pytest
 ```
 
-## 8. 实用说明
+常用烟雾测试：
 
-- `.test/test_5.py` 现在是 decision panel / 终端后端的内部烟雾测试，不再是 `pynput` 检查。
-- `write_content_tofile(..., file_code="auto")` 和 `read_file(..., file_code="auto")` 现在使用仓库内置检测器。
-- `storage/` 是运行输出目录，不是源码目录。
-- 仓库说明保持简洁、准确、可维护。
+```bash
+python3 .test/test_1.py
+python3 .test/test_2.py
+python3 .test/test_5.py
+python3 .test/test_7.py
+```

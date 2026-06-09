@@ -1,17 +1,8 @@
 # BrainBridge
 
-BrainBridge is a local Python toolkit built around a normal editable-install workflow.
+BrainBridge is a local Python toolkit for provider payload conversion, `urllib`-based requests, terminal interaction, structured logging, and `.bb` archive helpers.
 
-It currently focuses on:
-
-- provider argument conversion
-- `urllib`-based HTTP and SSE requests
-- threaded request dispatch
-- file helpers and `.bb` packaging
-- structured logging and integrity checks
-- terminal interaction helpers backed by raw terminal input
-
-English | [中文版本](./README.zh-CN.md) | [Instruction Manual](./instruction.md) | [中文使用说明](./instruction.zh-CN.md)
+[中文版本](./README.zh-CN.md) | [Instruction Manual](./instruction.md) | [中文使用说明](./instruction.zh-CN.md)
 
 ## Install
 
@@ -21,114 +12,122 @@ Use Python 3.12+ and install the repository in editable mode:
 python3 -m pip install -e .
 ```
 
-BrainBridge no longer depends on `sys.path` bootstrap helpers for normal use.
-Runtime code imports packages directly from `brainbridge.*`.
+BrainBridge is designed to work through normal package imports. New code should import from `brainbridge...` directly.
 
-## Layout
+## Current layout
 
-- `brainbridge/run_lib`: public runtime helpers
-- `brainbridge/static_lib`: public logging, checking, and information helpers
-- `brainbridge/run_lib/terminal_core`: built-in terminal raw-input backend
-- `config/sys_conf`: default config layer
-- `config/user_conf`: override config layer
-- `storage/`: runtime output only
-- `.test/sandbox/base`: original sandbox baseline
-- `.test/sandbox/YYYY-MM-DD`: dated sandbox archives
+- `brainbridge/lib/runtime`
+  Runtime modules such as provider conversion, requests, file helpers, and terminal input.
+- `brainbridge/lib/static`
+  Structured logging, integrity checks, and bundled information helpers.
+- `brainbridge/utils`
+  Small application-facing utilities migrated from the old `mini_tools` area.
+- `config/sys_conf`
+  Default provider configuration.
+- `config/user_conf`
+  User override layer for provider configuration.
+- `.test`
+  Smoke tests, pytest entrypoints, and sandbox fixtures.
 
-## Import examples
-
-```python
-from brainbridge.run_lib.provider_converter.converter import Converter
-from brainbridge.run_lib.requests_core.request_core import Request
-from brainbridge.static_lib.logger.log_core import Logger, LogLevels
-
-payload = Converter(
-    "openai_completion",
-    model="openai/gpt-oss-20b",
-    messages=[{"role": "user", "content": "hello"}],
-).information
-
-requester = Request(timeout=30)
-logger = Logger(level=LogLevels.INFO, text="ready")
-```
-
-## Core modules
-
-| Module | Purpose |
-| --- | --- |
-| `brainbridge/run_lib/files_manager/manager.py` | file IO, tree traversal, JSON reading, root path lookup |
-| `brainbridge/run_lib/mini_tools/chardet.py` | built-in `detect()` replacement for the old `chardet` usage |
-| `brainbridge/run_lib/mini_tools/files_convg.py` | `.bb` pack/unpack helpers with optional file-tree headers |
-| `brainbridge/run_lib/mini_tools/decision_panel.py` | terminal decision panel |
-| `brainbridge/run_lib/terminal_core/keyboard.py` | raw terminal keyboard listener with a small `pynput`-like surface |
-| `brainbridge/run_lib/provider_converter/converter.py` | provider payload conversion and response parsing helpers |
-| `brainbridge/run_lib/requests_core/request_core.py` | `urllib`-backed request layer |
-| `brainbridge/run_lib/requests_core/thread_requests/thread_requests.py` | threaded request pool |
-| `brainbridge/static_lib/logger/log_core.py` | structured logging |
-| `brainbridge/static_lib/checker/checker.py` | version, dependency, hash, and backup checks |
-
-## Dependency policy
-
-- Runtime dependencies are now standard-library only.
-- The old bootstrap helpers have been removed from the active source tree.
-- HTTP is handled by `urllib`.
-- Encoding detection is handled by `brainbridge.run_lib.mini_tools.chardet.detect`.
-- Terminal key listening is handled by `brainbridge.run_lib.terminal_core.keyboard`.
-
-## Notes
-
-- `DecisionPanelPage` no longer requires `pynput`; it uses the built-in raw terminal backend.
-- `Converter(...)` only includes `stream` when you pass it explicitly.
-- `DecisionPanelPage` treats both `Enter` and `Tab` as confirm keys.
-- `write_content_tofile(..., file_code="auto")` and related readers now rely on the in-repo detector.
-- `.bb` archives can optionally embed a compact file-tree header for quick inspection and validation.
-- `terminial_core`, `ResponseUnwarp`, and `unwarp()` remain as compatibility aliases.
-
-## More examples
+## Recommended top-level API
 
 ```python
-from brainbridge.run_lib.requests_core.thread_requests.thread_requests import RequestPool, RequestTask
-from brainbridge.run_lib.provider_converter.converter import Operator
-
-pool = RequestPool(Request(timeout=30))
-tasks = [
-    RequestTask("a", "get", ("https://example.com",)),
-    RequestTask("b", "get", ("https://example.org",)),
-]
-results = pool.execute_all(tasks)
-
-headers = Operator.HeadersBuilder.builder("token")
-parsed = Operator.ResponseUnwrap.unwrap("openai_completion", {"choices": []})
+from brainbridge import Converter, Operator, Request, Logger, LogLevels
 ```
 
-## `.bb` format
+This top-level surface is intentionally small. It is meant for common application code, not for every internal helper.
 
-`.bb` archives use a UTF-8, newline-delimited container format:
+## Recommended subpackage APIs
 
-```text
-BBPACK/3
-META {"kind":"backup","version":3,"b64_wrap":76,"chunk_size":1048576}
-META {"kind":"root","root_id":"<sha16>","root_posix":"<root path>"}
-META {"kind":"tree_header","format":"compact-tree-v1","line_count":N,"sha256":"<digest>"}   # optional
-TREE_BEGIN
-TREE_DATA <base64-encoded JSON tree header>                                                    # optional
-TREE_END                                                                                        # optional
-FILE_BEGIN
-FILE_META {"root_id":"<sha16>","rel":"path/in/root","src_full_posix":"<source path>","encoding":"b64"}
-FILE_DATA <base64 payload chunk>
-FILE_CHECK {"size":123,"sha256":"<digest>"}
-FILE_END
-...
-BBPACK_END
+### Provider conversion
+
+```python
+from brainbridge.lib.runtime.provider_converter import (
+    Converter,
+    build_headers,
+    list_providers,
+    provider_exists,
+    unwrap_response,
+)
 ```
 
-- `TREE_*` records are optional and describe the compact file tree for quick inspection.
-- `FILE_DATA` is Base64 text; restore verifies both `size` and `sha256`.
-- `rel` paths must stay relative and safe; extraction rejects absolute paths and `..` traversal.
+### Requests
 
-## Configuration
+```python
+from brainbridge.lib.runtime.requests_core import Request, Response, RequestException, iter_sse_json
+```
 
-Provider conversion reads:
+### Files
+
+```python
+from brainbridge.lib.runtime.files_manager import (
+    read_file,
+    read_json,
+    return_full_tree,
+    return_path_of_dir_under_root_dir,
+    valid_path,
+    write_content_tofile,
+    write_json,
+)
+```
+
+### Terminal input
+
+```python
+from brainbridge.lib.runtime.terminal_core import (
+    Key,
+    KeyCode,
+    KeyInput,
+    Listener,
+    decode_escape_sequence,
+    decode_single_char,
+    keyboard,
+)
+```
+
+### Utilities
+
+```python
+from brainbridge.utils import (
+    DecisionPanelPage,
+    Time,
+    detect,
+    display_loading_bar,
+    aggregate_to_backup,
+    has_file_tree_header,
+    inject_file_tree_header,
+    read_file_tree_header,
+    unpack_from_backup,
+)
+```
+
+### Logger
+
+```python
+from brainbridge.lib.static.logger import Logger, LogLevels, log_to_file
+```
+
+## Package cleanup status
+
+The old compatibility packages have been removed.
+
+- use `brainbridge.lib.runtime` instead of the historical `run_lib` layout
+- use `brainbridge.lib.static` instead of the historical `static_lib` layout
+- use `brainbridge.utils` for the utility surface that previously lived under `mini_tools`
+
+## Runtime dependency policy
+
+BrainBridge keeps runtime dependencies standard-library only.
+
+- HTTP uses `urllib`
+- terminal input uses the built-in `brainbridge.lib.runtime.terminal_core`
+- encoding detection uses the in-repo `brainbridge.utils.chardet.detect`
+
+The runtime should not require `requests`, external `chardet`, or `pynput`.
+
+## Provider configuration
+
+Provider conversion reads and merges:
 
 - `config/sys_conf/base_arg_match.json`
 - `config/sys_conf/escape_table.json`
@@ -137,29 +136,63 @@ Provider conversion reads:
 
 `user_conf` overrides `sys_conf`.
 
-## Recommended checks
+BrainBridge also provides a write backend for `user_conf` only:
 
-Run these after `python3 -m pip install -e .`:
+```python
+from brainbridge.lib.runtime.provider_converter import (
+    read_user_provider_config,
+    update_user_provider_config,
+    write_user_provider_config,
+)
+```
+
+These helpers do not write `sys_conf`.
+
+## `.bb` archive format
+
+BrainBridge ships `.bb` backup helpers in `brainbridge.utils.files_convg`.
+
+Current format:
+
+- magic header: `BBPACK/3`
+- UTF-8 line-oriented container
+- JSON metadata records
+- Base64 payload records
+- optional compact file-tree header for quick inspection and validation
+
+Main helper entrypoints:
+
+- `aggregate_to_backup(...)`
+- `unpack_from_backup(...)`
+- `has_file_tree_header(...)`
+- `read_file_tree_header(...)`
+- `inject_file_tree_header(...)`
+
+## Validation
+
+Recommended validation flow:
+
+```bash
+python3 -m pip install -e .
+python3 -m py_compile $(find brainbridge .test -name '*.py')
+python3 -m pytest
+```
+
+Useful smoke tests:
 
 ```bash
 python3 .test/test_2.py
 python3 .test/test_1.py
-python3 .test/test_7.py
-python3 -m py_compile $(rg --files -g '*.py' .test brainbridge)
-python3 -m brainbridge.static_lib.logger.log_core
-```
-
-If you touch terminal interaction code, also run:
-
-```bash
 python3 .test/test_5.py
+python3 .test/test_7.py
 ```
 
-## Practical notes
+## Notes
 
-- `.test/test_5.py` is the internal decision-panel/backend smoke test.
-- Prefer `Operator.ResponseUnwrap.unwrap(...)`; `ResponseUnwarp` and `unwarp()` remain compatibility aliases.
-- `storage/` is runtime output, not source.
+- `storage/` is no longer a required runtime dependency.
+- `DecisionPanelPage` uses the built-in terminal backend, not `pynput`.
+- `Converter(...)` only includes `stream` when you pass it explicitly.
+- `Tab` and `Enter` both act as confirm keys in `DecisionPanelPage`.
 
 ## License
 

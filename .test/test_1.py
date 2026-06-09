@@ -1,7 +1,7 @@
 import tempfile
 from os import path
 
-from brainbridge.run_lib.files_manager.manager import (
+from brainbridge.lib.runtime.files_manager.manager import (
     return_full_tree,
     return_path_of_dir_under_root_dir,
 )
@@ -14,4 +14,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
     with open(output_path, "w", encoding="utf-8") as file_obj:
         file_obj.write(tree_snapshot)
     assert path.exists(output_path)
-    assert "run_lib" in tree_snapshot
+    assert "lib" in tree_snapshot
+    assert "utils" in tree_snapshot
+    assert "run_lib" not in tree_snapshot
+    assert "static_lib" not in tree_snapshot

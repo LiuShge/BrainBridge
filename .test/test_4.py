@@ -1,7 +1,7 @@
 from json import loads
 
-from brainbridge.run_lib.provider_converter.converter import Converter, Operator
-from brainbridge.run_lib.requests_core.request_core import Request
+from brainbridge.lib.runtime.provider_converter.converter import Converter, Operator
+from brainbridge.lib.runtime.requests_core.request_core import Request
 
 
 def main() -> None:

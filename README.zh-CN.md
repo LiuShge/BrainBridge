@@ -1,17 +1,8 @@
 # BrainBridge
 
-BrainBridge 是一个面向本地仓库使用的 Python 工具集，现在采用标准的可编辑安装方式。
+BrainBridge 是一个面向本地开发使用的 Python 工具库，主要覆盖 provider payload 转换、基于 `urllib` 的请求、终端交互、结构化日志，以及 `.bb` 归档工具。
 
-当前主要能力包括：
-
-- provider 参数转换
-- 基于 `urllib` 的 HTTP / SSE 请求
-- 线程请求分发
-- 文件工具与 `.bb` 打包
-- 结构化日志与完整性校验
-- 基于终端 raw 模式的交互工具
-
-[English](./README.md) | 中文版本 | [使用说明](./instruction.md) | [中文使用说明](./instruction.zh-CN.md)
+[English](./README.md) | [Instruction Manual](./instruction.md) | [中文使用说明](./instruction.zh-CN.md)
 
 ## 安装
 
@@ -21,113 +12,122 @@ BrainBridge 是一个面向本地仓库使用的 Python 工具集，现在采用
 python3 -m pip install -e .
 ```
 
-BrainBridge 现在通过 `brainbridge.*` 包路径导入，不再依赖 `sys.path` 引导才能使用。
+BrainBridge 按标准包方式使用。新代码应直接从 `brainbridge...` 导入。
 
-## 目录结构
+## 当前目录结构
 
-- `brainbridge/run_lib`：对外运行时工具
-- `brainbridge/static_lib`：对外日志、校验、信息读取等辅助工具
-- `brainbridge/run_lib/terminal_core`：内置终端 raw 输入内核
-- `config/sys_conf`：默认配置层
-- `config/user_conf`：覆盖配置层
-- `storage/`：运行输出目录
-- `.test/sandbox/base`：原始 sandbox 基线
-- `.test/sandbox/YYYY-MM-DD`：按日期归档的 sandbox 快照
+- `brainbridge/lib/runtime`
+  运行时模块，如 provider 转换、请求、文件工具、终端输入。
+- `brainbridge/lib/static`
+  结构化日志、完整性检查、内置信息等静态辅助模块。
+- `brainbridge/utils`
+  面向应用层的小工具，这部分由旧 `mini_tools` 迁移而来。
+- `config/sys_conf`
+  默认 provider 配置层。
+- `config/user_conf`
+  用户覆盖配置层。
+- `.test`
+  烟雾测试、pytest 入口和 sandbox fixtures。
 
-## 导入示例
-
-```python
-from brainbridge.run_lib.provider_converter.converter import Converter
-from brainbridge.run_lib.requests_core.request_core import Request
-from brainbridge.static_lib.logger.log_core import Logger, LogLevels
-
-payload = Converter(
-    "openai_completion",
-    model="openai/gpt-oss-20b",
-    messages=[{"role": "user", "content": "hello"}],
-).information
-
-requester = Request(timeout=30)
-logger = Logger(level=LogLevels.INFO, text="ready")
-```
-
-## 核心模块
-
-| 模块 | 作用 |
-| --- | --- |
-| `brainbridge/run_lib/files_manager/manager.py` | 文件读写、目录树遍历、JSON 读取、根目录路径定位 |
-| `brainbridge/run_lib/mini_tools/chardet.py` | 仓库内置的 `detect()` 编码检测替代实现 |
-| `brainbridge/run_lib/mini_tools/files_convg.py` | `.bb` 打包/解包工具，支持可选文件树头 |
-| `brainbridge/run_lib/mini_tools/decision_panel.py` | 终端选择面板 |
-| `brainbridge/run_lib/terminal_core/keyboard.py` | 带少量 `pynput` 风格接口的 raw 终端键盘监听 |
-| `brainbridge/run_lib/provider_converter/converter.py` | provider 参数转换与响应解析 |
-| `brainbridge/run_lib/requests_core/request_core.py` | 基于 `urllib` 的请求内核 |
-| `brainbridge/run_lib/requests_core/thread_requests/thread_requests.py` | 线程请求池 |
-| `brainbridge/static_lib/logger/log_core.py` | 结构化日志 |
-| `brainbridge/static_lib/checker/checker.py` | 版本、依赖、哈希和备份检查 |
-
-## 依赖策略
-
-- 运行时依赖现在只使用标准库。
-- 旧的 bootstrap 辅助文件已经从现行源码树中移除。
-- HTTP 由 `urllib` 处理。
-- 编码检测由 `brainbridge.run_lib.mini_tools.chardet.detect` 处理。
-- 终端按键监听由 `brainbridge.run_lib.terminal_core.keyboard` 处理。
-
-## 说明
-
-- `DecisionPanelPage` 不再需要 `pynput`，现在使用内置 raw 终端输入后端。
-- `Converter(...)` 只有在显式传入时才会带上 `stream`。
-- `DecisionPanelPage` 现在把 `Enter` 和 `Tab` 都视为确认键。
-- `write_content_tofile(..., file_code="auto")` 等接口现在使用仓库内的编码检测器。
-- `.bb` 归档可以选择性嵌入紧凑文件树头，方便快速检查与校验。
-- `terminial_core`、`ResponseUnwarp` 和 `unwarp()` 仍保留为兼容别名。
-
-## 更多示例
+## 推荐顶层 API
 
 ```python
-from brainbridge.run_lib.requests_core.thread_requests.thread_requests import RequestPool, RequestTask
-from brainbridge.run_lib.provider_converter.converter import Operator
-
-pool = RequestPool(Request(timeout=30))
-tasks = [
-    RequestTask("a", "get", ("https://example.com",)),
-    RequestTask("b", "get", ("https://example.org",)),
-]
-results = pool.execute_all(tasks)
-
-headers = Operator.HeadersBuilder.builder("token")
-parsed = Operator.ResponseUnwrap.unwrap("openai_completion", {"choices": []})
+from brainbridge import Converter, Operator, Request, Logger, LogLevels
 ```
 
-## `.bb` 格式规范
+顶层暴露面刻意保持精简，适合常见应用代码，不用于承载所有内部工具。
 
-`.bb` 归档采用 UTF-8、按行分隔的文本容器格式：
+## 推荐子包 API
 
-```text
-BBPACK/3
-META {"kind":"backup","version":3,"b64_wrap":76,"chunk_size":1048576}
-META {"kind":"root","root_id":"<sha16>","root_posix":"<root path>"}
-META {"kind":"tree_header","format":"compact-tree-v1","line_count":N,"sha256":"<digest>"}   # 可选
-TREE_BEGIN
-TREE_DATA <base64 编码后的 JSON 文件树头>                                                      # 可选
-TREE_END                                                                                        # 可选
-FILE_BEGIN
-FILE_META {"root_id":"<sha16>","rel":"root 内相对路径","src_full_posix":"<源路径>","encoding":"b64"}
-FILE_DATA <base64 载荷分块>
-FILE_CHECK {"size":123,"sha256":"<digest>"}
-FILE_END
-...
-BBPACK_END
+### Provider 转换
+
+```python
+from brainbridge.lib.runtime.provider_converter import (
+    Converter,
+    build_headers,
+    list_providers,
+    provider_exists,
+    unwrap_response,
+)
 ```
 
-- `TREE_*` 记录是可选的，用于快速查看紧凑文件树。
-- `FILE_DATA` 始终是 Base64 文本；恢复时会同时校验 `size` 和 `sha256`。
-- `rel` 必须保持相对且安全；解包会拒绝绝对路径和 `..` 路径穿越。
+### 请求
 
-## 配置
+```python
+from brainbridge.lib.runtime.requests_core import Request, Response, RequestException, iter_sse_json
+```
 
-Provider 转换会读取：
+### 文件
+
+```python
+from brainbridge.lib.runtime.files_manager import (
+    read_file,
+    read_json,
+    return_full_tree,
+    return_path_of_dir_under_root_dir,
+    valid_path,
+    write_content_tofile,
+    write_json,
+)
+```
+
+### 终端输入
+
+```python
+from brainbridge.lib.runtime.terminal_core import (
+    Key,
+    KeyCode,
+    KeyInput,
+    Listener,
+    decode_escape_sequence,
+    decode_single_char,
+    keyboard,
+)
+```
+
+### 工具集
+
+```python
+from brainbridge.utils import (
+    DecisionPanelPage,
+    Time,
+    detect,
+    display_loading_bar,
+    aggregate_to_backup,
+    has_file_tree_header,
+    inject_file_tree_header,
+    read_file_tree_header,
+    unpack_from_backup,
+)
+```
+
+### 日志
+
+```python
+from brainbridge.lib.static.logger import Logger, LogLevels, log_to_file
+```
+
+## 清理状态
+
+旧兼容包已经完全删除。
+
+- 历史上的 `run_lib` 结构现在统一使用 `brainbridge.lib.runtime`
+- 历史上的 `static_lib` 结构现在统一使用 `brainbridge.lib.static`
+- 原先属于 `mini_tools` 的工具面现在统一使用 `brainbridge.utils`
+
+## 运行时依赖策略
+
+BrainBridge 运行时坚持仅使用标准库。
+
+- HTTP 由 `urllib` 处理
+- 终端输入由内置 `brainbridge.lib.runtime.terminal_core` 处理
+- 编码检测由仓库内的 `brainbridge.utils.chardet.detect` 处理
+
+运行时不应依赖 `requests`、外部 `chardet` 或 `pynput`。
+
+## Provider 配置
+
+Provider 转换会读取并合并：
 
 - `config/sys_conf/base_arg_match.json`
 - `config/sys_conf/escape_table.json`
@@ -136,29 +136,63 @@ Provider 转换会读取：
 
 `user_conf` 会覆盖 `sys_conf`。
 
-## 推荐检查
+仓库也提供只写 `user_conf` 的后端工具：
 
-先执行 `python3 -m pip install -e .`，然后跑：
+```python
+from brainbridge.lib.runtime.provider_converter import (
+    read_user_provider_config,
+    update_user_provider_config,
+    write_user_provider_config,
+)
+```
+
+这些工具不会写入 `sys_conf`。
+
+## `.bb` 归档格式
+
+BrainBridge 在 `brainbridge.utils.files_convg` 中提供 `.bb` 备份工具。
+
+当前格式特点：
+
+- 魔术头：`BBPACK/3`
+- UTF-8 按行文本容器
+- JSON 元数据记录
+- Base64 载荷记录
+- 可选紧凑文件树头，便于快速检查和校验
+
+主要入口：
+
+- `aggregate_to_backup(...)`
+- `unpack_from_backup(...)`
+- `has_file_tree_header(...)`
+- `read_file_tree_header(...)`
+- `inject_file_tree_header(...)`
+
+## 验证
+
+推荐验证流程：
+
+```bash
+python3 -m pip install -e .
+python3 -m py_compile $(find brainbridge .test -name '*.py')
+python3 -m pytest
+```
+
+常用烟雾测试：
 
 ```bash
 python3 .test/test_2.py
 python3 .test/test_1.py
-python3 .test/test_7.py
-python3 -m py_compile $(rg --files -g '*.py' .test brainbridge)
-python3 -m brainbridge.static_lib.logger.log_core
-```
-
-如果改了终端交互相关代码，再补跑：
-
-```bash
 python3 .test/test_5.py
+python3 .test/test_7.py
 ```
 
-## 实用说明
+## 说明
 
-- `.test/test_5.py` 是 decision panel / 终端后端的内部烟雾测试。
-- 优先使用 `Operator.ResponseUnwrap.unwrap(...)`；`ResponseUnwarp` 和 `unwarp()` 仍是兼容别名。
-- `storage/` 是运行输出目录，不是源码目录。
+- `storage/` 已不再是必需的运行时依赖。
+- `DecisionPanelPage` 使用内置终端后端，不依赖 `pynput`。
+- `Converter(...)` 只有在显式传入时才会带上 `stream`。
+- `DecisionPanelPage` 中 `Tab` 与 `Enter` 都会作为确认键。
 
 ## 许可证
 
