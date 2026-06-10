@@ -3,7 +3,7 @@ from __future__ import annotations
 from os import path
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
 
-from brainbridge.lib.runtime.files_manager.manager import read_json, return_path_of_dir_under_root_dir
+from brainbridge.lib.runtime.file_utils import read_json, return_path_of_dir_under_root_dir
 
 __all__ = ["Converter", "Operator"]
 

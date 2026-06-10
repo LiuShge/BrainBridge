@@ -14,7 +14,7 @@ python3 -m pip install -e .
 
 ```python
 from brainbridge import Converter, Operator, Request, Logger, LogLevels
-from brainbridge.lib.runtime.files_manager import read_json, write_json
+from brainbridge.lib.runtime.file_utils import read_json, write_json
 from brainbridge.lib.runtime.provider_converter import build_headers, unwrap_response
 from brainbridge.utils import DecisionPanelPage, Time, detect, display_loading_bar
 ```
@@ -24,7 +24,8 @@ from brainbridge.utils import DecisionPanelPage, Time, detect, display_loading_b
 ## 2. 包结构
 
 - `brainbridge/lib/runtime`
-  运行时请求、转换、文件、终端模块。
+  运行时请求、转换、文件工具、终端模块。
+  `brainbridge.lib.runtime.file_utils` 是公开的文件工具命名空间，`general.py`、`bb_utils.py` 和 `ignores.py` 只是内部实现拆分。
 - `brainbridge/lib/static`
   日志、检查、内置信息等静态辅助模块。
 - `brainbridge/utils`
@@ -49,7 +50,7 @@ from brainbridge.utils import DecisionPanelPage, Time, detect, display_loading_b
 - `brainbridge`
 - `brainbridge.lib.runtime.provider_converter`
 - `brainbridge.lib.runtime.requests_core`
-- `brainbridge.lib.runtime.files_manager`
+- `brainbridge.lib.runtime.file_utils`
 - `brainbridge.lib.runtime.terminal_core`
 - `brainbridge.lib.static.logger`
 - `brainbridge.utils`
@@ -185,12 +186,12 @@ for item in iter_sse_json(events):
 - `iter_sse_json(...)` 接收 `request_sse(...)` 产出的事件字典。
 - 它会跳过空数据和默认 `[DONE]` 结束标记。
 
-## 7. 文件：读取、写入、JSON
+## 7. 文件：读取、写入、JSON、目录树与 `.bb`
 
 推荐导入：
 
 ```python
-from brainbridge.lib.runtime.files_manager import (
+from brainbridge.lib.runtime.file_utils import (
     read_file,
     read_json,
     return_full_tree,
@@ -216,6 +217,25 @@ print(data["hello"])
 
 - `write_json(...)` 是对 `json.dumps(...)` 和 `write_content_tofile(...)` 的薄封装。
 - `read_file(..., file_code="auto")` 和 `write_content_tofile(..., file_code="auto")` 使用仓库内置编码检测器。
+- `return_full_tree(..., ignores=...)` 支持 `ignores=".pyc"`、`ignores=[".pyc", ".log"]`、`ignores={"dir": [".git", "__pycache__"], "file": [".pyc"]}`。
+- 字符串和列表形式只作用于文件名，不作用于目录名；目录忽略必须使用字典形式。
+
+`.bb` 相关工具也属于同一个公共命名空间：
+
+```python
+from brainbridge.lib.runtime.file_utils import (
+    aggregate_to_backup,
+    has_file_tree_header,
+    inject_file_tree_header,
+    read_file_tree_header,
+    unpack_from_backup,
+)
+```
+
+推荐注意事项：
+
+- `aggregate_to_backup(..., ignores=...)` 在写入记录前会先过滤文件和目录。
+- `inject_file_tree_header(..., ignores=...)` 重新生成头部时会使用同一套忽略规则。
 
 ## 8. 终端键盘 API
 
@@ -401,7 +421,7 @@ from brainbridge.utils import (
 示例：
 
 ```python
-from brainbridge.lib.runtime.files_manager import return_full_tree
+from brainbridge.lib.runtime.file_utils import return_full_tree
 
 tree = return_full_tree("/path/to/project")
 

@@ -1,23 +1,18 @@
-"""Aggregate files into a single portable backup and unpack it later.
-
-This module provides functionalities to create and restore backups of directory trees.
-Backup files are UTF-8 encoded and support both text and binary files via Base64 encoding.
-The current `.bb` format is a line-oriented container with JSON metadata records and an
-optional compact file-tree header at the top for quick inspection.
-"""
+"""Aggregate files into a single portable backup and unpack it later."""
 
 from __future__ import annotations
 
 import base64
 import hashlib
 import json
+import logging
 import os
 import tempfile
 from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Dict, Iterable, Iterator, Mapping, Optional, Sequence, Tuple
-import logging
 
-from brainbridge.lib.runtime.files_manager.manager import valid_path
+from brainbridge.lib.runtime.file_utils.general import valid_path
+from brainbridge.lib.runtime.file_utils.ignores import IgnoreSpec, normalize_ignores, should_ignore_name
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +39,6 @@ __all__ = [
     "root_prefix_id",
     "relative_under_root",
     "b64_encode_stream",
-    "build_compact_file_tree",
     "has_file_tree_header",
     "read_file_tree_header",
     "inject_file_tree_header",
@@ -129,16 +123,59 @@ def b64_encode_stream(src: Iterable[bytes], wrap: int = B64_WRAP) -> Iterator[st
         if take:
             out = base64.b64encode(buf[:take]).decode("ascii")
             for i in range(0, len(out), wrap):
-                yield out[i:i + wrap]
+                yield out[i : i + wrap]
             buf = buf[take:]
     if buf:
         out = base64.b64encode(buf).decode("ascii")
         for i in range(0, len(out), wrap):
-            yield out[i:i + wrap]
+            yield out[i : i + wrap]
 
 
-def build_compact_file_tree(tree: Mapping[str, Sequence[str | Dict[str, Any]]]) -> Dict[str, Any]:
+def _filter_tree_nodes(nodes: Sequence[str | Dict[str, Any]], normalized_ignores: Mapping[str, list[str]]) -> list[str | Dict[str, Any]]:
+    filtered: list[str | Dict[str, Any]] = []
+
+    for node in nodes:
+        if isinstance(node, str):
+            if is_special_marker(node):
+                filtered.append(node)
+                continue
+            if should_ignore_name(Path(node).name, "file", normalized_ignores):
+                continue
+            filtered.append(node)
+            continue
+
+        if isinstance(node, dict):
+            filtered_node: Dict[str, Any] = {}
+            for dir_path, children in node.items():
+                if should_ignore_name(Path(dir_path).name, "dir", normalized_ignores):
+                    continue
+                filtered_node[dir_path] = _filter_tree_nodes(children, normalized_ignores)
+            if filtered_node:
+                filtered.append(filtered_node)
+            continue
+
+        filtered.append(node)
+
+    return filtered
+
+
+def _filter_tree(
+    tree: Mapping[str, Sequence[str | Dict[str, Any]]],
+    normalized_ignores: Mapping[str, list[str]],
+) -> Dict[str, list[str | Dict[str, Any]]]:
+    return {
+        root: _filter_tree_nodes(contents, normalized_ignores)
+        for root, contents in tree.items()
+    }
+
+
+def build_compact_file_tree(
+    tree: Mapping[str, Sequence[str | Dict[str, Any]]],
+    ignores: IgnoreSpec = None,
+) -> Dict[str, Any]:
     """Build a concise relative-path file tree header for a backup."""
+    normalized_ignores = normalize_ignores(ignores)
+    filtered_tree = _filter_tree(tree, normalized_ignores)
 
     def _compact_marker(root: str, marker: str) -> str:
         if ":" not in marker:
@@ -161,25 +198,25 @@ def build_compact_file_tree(tree: Mapping[str, Sequence[str | Dict[str, Any]]]) 
                 continue
 
             for dir_path, children in node.items():
-                compact_nodes.append({
-                    relative_under_root(root, dir_path): _compact_nodes(root, children, counts)
-                })
+                compact_nodes.append({relative_under_root(root, dir_path): _compact_nodes(root, children, counts)})
         return compact_nodes
 
     roots: list[Dict[str, Any]] = []
     total_file_count = 0
 
-    for root, contents in tree.items():
+    for root, contents in filtered_tree.items():
         counts = {"file_count": 0, "marker_count": 0}
         compact_tree = _compact_nodes(root, contents, counts)
         total_file_count += counts["file_count"]
-        roots.append({
-            "root_id": root_prefix_id(root),
-            "root_posix": to_posix(root),
-            "file_count": counts["file_count"],
-            "marker_count": counts["marker_count"],
-            "tree": compact_tree,
-        })
+        roots.append(
+            {
+                "root_id": root_prefix_id(root),
+                "root_posix": to_posix(root),
+                "file_count": counts["file_count"],
+                "marker_count": counts["marker_count"],
+                "tree": compact_tree,
+            }
+        )
 
     return {
         "format": TREE_HEADER_FORMAT,
@@ -210,12 +247,13 @@ def inject_file_tree_header(
     backup_file_path: str | Path,
     tree: Mapping[str, Sequence[str | Dict[str, Any]]],
     validate: bool = True,
+    ignores: IgnoreSpec = None,
 ) -> None:
     """Insert or replace the top-level file-tree header in an existing `.bb` backup."""
     backup_path = Path(backup_file_path)
     valid_path(str(backup_path), is_file=True)
 
-    header_payload = build_compact_file_tree(tree)
+    header_payload = build_compact_file_tree(tree, ignores=ignores)
     if validate:
         scan = _scan_backup_structure(backup_path, decode_tree=False, collect_records=True)
         _validate_tree_header_against_records(header_payload, scan["records"])
@@ -277,26 +315,30 @@ def aggregate_to_backup(
     progress_callback: Optional[Callable[[int], None]] = None,
     include_file_tree_header: bool = False,
     validate_file_tree_header: bool = True,
+    ignores: IgnoreSpec = None,
 ) -> None:
     """Aggregate files from a tree into a single UTF-8 `.bb` backup file."""
     output_path = Path(output_backup_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    normalized_ignores = normalize_ignores(ignores)
+    filtered_tree = _filter_tree(tree, normalized_ignores)
+
     roots_meta = {
         root_prefix_id(root): to_posix(root)
-        for root in tree.keys()
+        for root in filtered_tree.keys()
     }
 
     tree_header: Optional[Dict[str, Any]] = None
     if include_file_tree_header:
-        tree_header = build_compact_file_tree(tree)
+        tree_header = build_compact_file_tree(filtered_tree, ignores=None)
         if validate_file_tree_header:
             expected_records = [
                 {
                     "root_id": root_prefix_id(root),
                     "rel": relative_under_root(root, file_path),
                 }
-                for root, file_path in iter_tree_files(tree)
+                for root, file_path in iter_tree_files(filtered_tree)
                 if os.path.isfile(file_path)
             ]
             _validate_tree_header_against_records(tree_header, expected_records)
@@ -320,7 +362,7 @@ def aggregate_to_backup(
             for header_line in _build_tree_header_lines(tree_header):
                 backup_file.write(header_line)
 
-        for root, file_path in iter_tree_files(tree):
+        for root, file_path in iter_tree_files(filtered_tree):
             if not os.path.isfile(file_path):
                 logger.warning("Skipping non-file node: %s", file_path)
                 continue
@@ -466,7 +508,7 @@ def unpack_from_backup(
             if line.startswith(PAYLOAD_PREFIX):
                 if current_out_file is None or current_sha is None:
                     raise BackupError("Encountered payload without an open file record.")
-                b64_data = line[len(PAYLOAD_PREFIX):]
+                b64_data = line[len(PAYLOAD_PREFIX) :]
                 chunk = base64.b64decode(b64_data, validate=True)
                 current_out_file.write(chunk)
                 current_sha.update(chunk)
@@ -501,7 +543,7 @@ def _parse_json_payload(line: str, prefix: str) -> Dict[str, Any]:
     if not line.startswith(prefix):
         raise BackupError(f"Expected prefix {prefix!r}, got: {line!r}")
     try:
-        payload = json.loads(line[len(prefix):])
+        payload = json.loads(line[len(prefix) :])
     except json.JSONDecodeError as exc:
         raise BackupError(f"Invalid JSON metadata line: {line!r}") from exc
     if not isinstance(payload, dict):
@@ -555,7 +597,7 @@ def _scan_backup_structure(
                     continue
                 if line.startswith(TREE_DATA_PREFIX):
                     if decode_tree:
-                        tree_lines.append(line[len(TREE_DATA_PREFIX):])
+                        tree_lines.append(line[len(TREE_DATA_PREFIX) :])
                     continue
                 raise BackupError(f"Unexpected tree header line: {line}")
 

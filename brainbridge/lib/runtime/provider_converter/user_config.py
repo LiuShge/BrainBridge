@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict
 
-from brainbridge.lib.runtime.files_manager.manager import read_json, return_path_of_dir_under_root_dir
+from brainbridge.lib.runtime.file_utils import read_json, return_path_of_dir_under_root_dir
 
 __all__ = [
     "read_user_provider_config",

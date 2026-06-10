@@ -17,7 +17,8 @@ BrainBridge is designed to work through normal package imports. New code should 
 ## Current layout
 
 - `brainbridge/lib/runtime`
-  Runtime modules such as provider conversion, requests, file helpers, and terminal input.
+  Runtime modules such as provider conversion, requests, file utilities, and terminal input.
+  `brainbridge.lib.runtime.file_utils` is the public file utility namespace; `general.py`, `bb_utils.py`, and `ignores.py` are implementation details.
 - `brainbridge/lib/static`
   Structured logging, integrity checks, and bundled information helpers.
 - `brainbridge/utils`
@@ -60,7 +61,7 @@ from brainbridge.lib.runtime.requests_core import Request, Response, RequestExce
 ### Files
 
 ```python
-from brainbridge.lib.runtime.files_manager import (
+from brainbridge.lib.runtime.file_utils import (
     read_file,
     read_json,
     return_full_tree,
@@ -93,11 +94,6 @@ from brainbridge.utils import (
     Time,
     detect,
     display_loading_bar,
-    aggregate_to_backup,
-    has_file_tree_header,
-    inject_file_tree_header,
-    read_file_tree_header,
-    unpack_from_backup,
 )
 ```
 
@@ -150,7 +146,7 @@ These helpers do not write `sys_conf`.
 
 ## `.bb` archive format
 
-BrainBridge ships `.bb` backup helpers in `brainbridge.utils.files_convg`.
+BrainBridge ships `.bb` backup helpers in `brainbridge.lib.runtime.file_utils`.
 
 Current format:
 
@@ -167,6 +163,14 @@ Main helper entrypoints:
 - `has_file_tree_header(...)`
 - `read_file_tree_header(...)`
 - `inject_file_tree_header(...)`
+
+Ignore support:
+
+- `ignores=".pyc"`
+- `ignores=[".pyc", ".log"]`
+- `ignores={"dir": [".git", "__pycache__"], "file": [".pyc"]}`
+
+String and list forms apply to file names only. Directory ignores require the `dict` form.
 
 ## Validation
 

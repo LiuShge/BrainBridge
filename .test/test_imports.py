@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 
 from brainbridge import Converter, Logger, LogLevels, Operator, Request
-from brainbridge.lib.runtime.files_manager import read_json, write_json
+from brainbridge.lib.runtime.file_utils import aggregate_to_backup, read_json, unpack_from_backup, write_json
 from brainbridge.lib.runtime.provider_converter import (
     Converter as RuntimeConverter,
     build_headers,
@@ -49,6 +49,8 @@ with tempfile.TemporaryDirectory() as tmpdir:
     log_path = Path(tmpdir) / "sample.jsonl"
     write_json(str(json_path), {"hello": "world"}, indent=2)
     assert read_json(str(json_path)) == {"hello": "world"}
+    assert callable(aggregate_to_backup)
+    assert callable(unpack_from_backup)
 
     log_to_file("hello", level=LogLevels.INFO, file_path=str(log_path))
     log_record = json.loads(log_path.read_text(encoding="utf-8").strip())

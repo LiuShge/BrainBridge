@@ -1,12 +1,13 @@
 import tempfile
 from pathlib import Path
 
-from brainbridge.lib.runtime.files_manager.manager import read_file, return_full_tree
-from brainbridge.utils.files_convg import (
+from brainbridge.lib.runtime.file_utils import (
     aggregate_to_backup,
     has_file_tree_header,
     inject_file_tree_header,
+    read_file,
     read_file_tree_header,
+    return_full_tree,
     unpack_from_backup,
 )
 

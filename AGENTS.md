@@ -8,9 +8,11 @@ Keep this file practical and aligned with the current repository layout.
   - `brainbridge/lib/runtime`
   - `brainbridge/lib/static`
   - `brainbridge/utils`
+  - `brainbridge/lib/runtime/file_utils`
 - The historical compatibility packages have been removed. Do not reintroduce them.
 - Install locally with `python3 -m pip install -e .` before validation.
 - New code should import from `brainbridge...` directly. Do not add new `sys.path` bootstrap dependencies.
+- Public file helpers should be re-exported from `brainbridge/lib/runtime/file_utils/__init__.py`. Do not make application code import from `general.py` or `bb_utils.py` directly.
 - Do not rewrite internal module architecture unless the task explicitly asks for it.
 - Do not expose private APIs such as `_ConfigEngine`, `_RawKeyReader`, or other underscore-prefixed internals.
 - `config/sys_conf` is the default layer. `config/user_conf` overrides it.
@@ -19,6 +21,7 @@ Keep this file practical and aligned with the current repository layout.
 - Runtime dependencies must remain standard-library only. Do not introduce `requests`, external `chardet`, or `pynput` as runtime requirements.
 - `brainbridge/lib/runtime/terminal_core` is the authoritative terminal input backend.
 - `brainbridge/utils` is the current home of the utility surface that replaced `mini_tools`.
+- `brainbridge/lib/runtime/file_utils` is the public namespace for runtime file helpers and `.bb` helpers.
 - If you change public APIs or behavior, update:
   - `README.md`
   - `README.zh-CN.md`
@@ -28,10 +31,11 @@ Keep this file practical and aligned with the current repository layout.
 - Recommended verification commands:
   - `python3 -m py_compile $(find brainbridge .test -name '*.py')`
   - `python3 -m pytest`
-  - `python3 .test/test_2.py`
-  - `python3 .test/test_1.py` when file helpers or `.bb` helpers change
-  - `python3 .test/test_5.py` when terminal interaction changes
-  - `python3 .test/test_7.py` when `.bb` header behavior changes
+- `python3 .test/test_2.py`
+- `python3 .test/test_1.py` when file helpers or `.bb` helpers change
+- `python3 .test/test_5.py` when terminal interaction changes
+- `python3 .test/test_7.py` when `.bb` header behavior changes
+- `python3 -m pytest` after file utility or ignore-logic changes
 
 ## 中文
 

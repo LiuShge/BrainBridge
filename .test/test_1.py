@@ -1,7 +1,7 @@
 import tempfile
 from os import path
 
-from brainbridge.lib.runtime.files_manager.manager import (
+from brainbridge.lib.runtime.file_utils import (
     return_full_tree,
     return_path_of_dir_under_root_dir,
 )

@@ -4,7 +4,7 @@ import importlib.util
 import hashlib
 from os import path
 
-from brainbridge.lib.runtime.files_manager.manager import (
+from brainbridge.lib.runtime.file_utils import (
     read_file,
     return_full_tree,
     valid_path,

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from brainbridge.lib.runtime.files_manager.manager import return_path_of_dir_under_root_dir
+from brainbridge.lib.runtime.file_utils import return_path_of_dir_under_root_dir
 from brainbridge.lib.runtime.provider_converter import (
     read_user_provider_config,
     update_user_provider_config,

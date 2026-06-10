@@ -14,7 +14,7 @@ Recommended import style:
 
 ```python
 from brainbridge import Converter, Operator, Request, Logger, LogLevels
-from brainbridge.lib.runtime.files_manager import read_json, write_json
+from brainbridge.lib.runtime.file_utils import read_json, write_json
 from brainbridge.lib.runtime.provider_converter import build_headers, unwrap_response
 from brainbridge.utils import DecisionPanelPage, Time, detect, display_loading_bar
 ```
@@ -24,7 +24,8 @@ Do not add new `sys.path` bootstrap helpers for normal package use.
 ## 2. Package layout
 
 - `brainbridge/lib/runtime`
-  Runtime request, conversion, file, and terminal modules.
+  Runtime request, conversion, file utilities, and terminal modules.
+  `brainbridge.lib.runtime.file_utils` is the public file utility namespace. `general.py`, `bb_utils.py`, and `ignores.py` are internal implementation splits.
 - `brainbridge/lib/static`
   Logging, checking, and bundled information helpers.
 - `brainbridge/utils`
@@ -49,7 +50,7 @@ Public APIs are the objects exported from:
 - `brainbridge`
 - `brainbridge.lib.runtime.provider_converter`
 - `brainbridge.lib.runtime.requests_core`
-- `brainbridge.lib.runtime.files_manager`
+- `brainbridge.lib.runtime.file_utils`
 - `brainbridge.lib.runtime.terminal_core`
 - `brainbridge.lib.static.logger`
 - `brainbridge.utils`
@@ -185,12 +186,12 @@ Notes:
 - `iter_sse_json(...)` consumes the event dictionaries produced by `request_sse(...)`.
 - It skips empty payloads and the default `[DONE]` token.
 
-## 7. Files: read, write, and JSON
+## 7. Files: read, write, JSON, tree traversal, and `.bb`
 
 Recommended imports:
 
 ```python
-from brainbridge.lib.runtime.files_manager import (
+from brainbridge.lib.runtime.file_utils import (
     read_file,
     read_json,
     return_full_tree,
@@ -216,6 +217,25 @@ Notes:
 
 - `write_json(...)` is a thin helper around `json.dumps(...)` and `write_content_tofile(...)`.
 - `read_file(..., file_code="auto")` and `write_content_tofile(..., file_code="auto")` use the in-repo detector.
+- `return_full_tree(..., ignores=...)` supports `ignores=".pyc"`, `ignores=[".pyc", ".log"]`, and `ignores={"dir": [".git", "__pycache__"], "file": [".pyc"]}`.
+- String and list ignore forms apply to file names only; directory ignores require the `dict` form.
+
+`.bb` helpers are also part of the same public namespace:
+
+```python
+from brainbridge.lib.runtime.file_utils import (
+    aggregate_to_backup,
+    has_file_tree_header,
+    inject_file_tree_header,
+    read_file_tree_header,
+    unpack_from_backup,
+)
+```
+
+Recommended `.bb` notes:
+
+- `aggregate_to_backup(..., ignores=...)` filters files and directories before writing records.
+- `inject_file_tree_header(..., ignores=...)` uses the same ignore rules when regenerating the header.
 
 ## 8. Terminal keyboard API
 
@@ -401,7 +421,7 @@ from brainbridge.utils import (
 Example:
 
 ```python
-from brainbridge.lib.runtime.files_manager import return_full_tree
+from brainbridge.lib.runtime.file_utils import return_full_tree
 
 tree = return_full_tree("/path/to/project")
 
